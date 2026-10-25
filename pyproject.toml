@@ -1,0 +1,16 @@
+[project]
+name = "fraud-detection-demo"
+version = "0.1.0"
+description = "Strażnik Płatności – demo wykrywania oszustw w transakcjach kartowych (XGBoost + Streamlit)"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "pandas>=3.1.0",
+    "pyarrow>=26.0.0",
+    "scikit-learn>=1.9.1",
+    "streamlit>=1.66.1",
+    # On Linux (Docker) the CPU-only build avoids several hundred MB of CUDA libraries.
+    "xgboost>=3.4.1; sys_platform != 'linux'",
+    "xgboost-cpu>=3.4.1; sys_platform == 'linux'",
+]

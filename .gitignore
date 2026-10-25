@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.py[oc]
+
+# Kaggle data (download manually, see README) and trained models (made by train.py)
+data/
+artifacts/
