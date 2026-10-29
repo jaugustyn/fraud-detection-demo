@@ -2,7 +2,7 @@
 
 Strażnik Płatności ocenia ryzyko oszustwa w transakcjach kartowych i proponuje jedną z trzech decyzji:
 **przepuść**, **dodatkowa weryfikacja** (SMS, 3D Secure) albo **blokada**. Pokazuje też, ile kosztuje
-wybrany kompromis między złapanymi oszustwami a zatrzymanymi uczciwymi klientami.
+wybrany kompromis między złapanymi oszustwami a zatrzymanymi uczciwymi transakcjami.
 
 Aplikacja działa na 555 719 transakcjach testowych z drugiej połowy 2020 roku (dane syntetyczne z Kaggle).
 Jak ją uruchomić, opisuje [README](../README.md). Liczby w tym tutorialu dotyczą ustawień domyślnych.
@@ -42,7 +42,7 @@ regułami (1 486 zł). Tabela „Co dzieje się z transakcjami” rozbija wynik 
 
 1. Przesuń próg blokady z 50% na 20%. Fałszywych blokad przybywa (199 → 539), a wykrytych oszustw jest
    tyle samo (93%), bo te transakcje i tak trafiały do weryfikacji. Ostrzejsza blokada uderza tu głównie
-   w uczciwych klientów.
+   w uczciwe transakcje.
 2. Wróć do 50% i przesuń próg weryfikacji z 10% na 0,5%. Koszt spada do 219 zł i wykrywamy 98% oszustw,
    ale zbędnych weryfikacji jest już 5 496. Najtańsze ustawienie nie musi być najlepsze dla klientów.
 3. Rozwiń „Założenia kosztowe” i zmień koszt blokady na 300 zł. Koszt przy domyślnych progach rośnie

@@ -1,16 +1,16 @@
 # Wyniki – Strażnik Płatności
 
-Wygenerowane przez `report.py` (25.10.2026). Wszystkie liczby dotyczą zbioru testowego,
+Wygenerowane przez `report.py` (29.10.2026). Wszystkie liczby dotyczą zbioru testowego,
 którego modele nie widziały podczas nauki.
 
 ## Dane
 
 - Zbiór: „Credit Card Transactions Fraud Detection Dataset” (Kaggle, autor kartik2112, dane syntetyczne
   z generatora Sparkov): https://www.kaggle.com/datasets/kartik2112/fraud-detection
-- Uczenie: 1 296 675 transakcji (2019-01-01 – 2020-06-21), w tym 7 506
-  oszustw (0,58%).
-- Test: 555 719 transakcji (2020-06-21 – 2020-12-31), w tym 2 145
-  oszustw (0,39%).
+- Uczenie: 1 296 675 transakcji (01.01.2019 – 21.06.2020),
+  w tym 7 506 oszustw (0,58%).
+- Test: 555 719 transakcji (21.06.2020 – 31.12.2020),
+  w tym 2 145 oszustw (0,39%).
 - Kwoty w zbiorze są w USD, przeliczamy je na zł: kurs średni NBP z 23.10.2026 (tabela 207/A/NBP/2026): 1 USD = 3,9247 zł.
 - Model, który przepuszcza wszystko, ma trafność (accuracy) 99,6% i nie łapie żadnego
   oszustwa. Dlatego patrzymy na wykryte oszustwa, fałszywe alarmy i koszt.
@@ -93,4 +93,8 @@ zablokowane uczciwe transakcje 199, zweryfikowane uczciwe transakcje
 - Dane są syntetyczne. Generator tworzy wyraźne wzorce oszustw (noc, wysokie kwoty, seria transakcji
   w krótkim czasie), więc na prawdziwych danych wyniki byłyby prawdopodobnie niższe.
 - Uczenie i test pochodzą z tego samego generatora; test jest późniejszy w czasie (jak w praktyce).
+- Model zna tylko sytuacje z danych uczących. Największe oszustwo w nich to 5 401 zł, więc wyższych
+  kwot model nie uznaje za bardziej podejrzane. Przykład (zakupy spożywcze w sklepie o 23:00, wydatki karty
+  w ostatnich 24 h 4 000 zł): przy 1 500 zł ryzyko wynosi 100,0%,
+  a przy 20 000 zł tylko 80,7%.
 - Koszty i skuteczność weryfikacji to założenia. Najtańsze progi zmieniają się razem z nimi.

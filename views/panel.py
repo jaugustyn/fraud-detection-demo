@@ -8,7 +8,7 @@ import streamlit as st
 from src.app_data import load_meta, load_scored
 from src.config import USD_PLN_SOURCE
 from src.evaluation import BLOCK, DECISION_LABELS, PASS, VERIFY, decide, evaluate
-from src.formatting import BLUE, GRAY, INK, fmt_int, fmt_pct, fmt_pln
+from src.formatting import BLUE, GRAY, INK, fmt_date, fmt_int, fmt_pct, fmt_pln
 
 settings = st.session_state.settings
 df = load_scored()
@@ -21,7 +21,7 @@ current = evaluate(y, amount, decisions, settings.costs)
 no_system = evaluate(y, amount, np.full(len(df), PASS), settings.costs)
 rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS), settings.costs)
 
-period = f"{pd.Timestamp(test['from']):%d.%m.%Y}–{pd.Timestamp(test['to']):%d.%m.%Y}"
+period = f"{fmt_date(test['from'])}–{fmt_date(test['to'])}"
 st.title("Panel kompromisu")
 st.caption(f"{fmt_int(test['rows'])} transakcji testowych ({period}), w tym {fmt_int(test['fraud'])} oszustw. "
            "Przesuwaj progi w panelu bocznym.")

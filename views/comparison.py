@@ -49,12 +49,15 @@ rules_point = pd.DataFrame({
     "detected": [detected["Proste reguły"]],
     "Metoda": ["Proste reguły"],
 })
+for points in (curves, rules_point):  # tooltip texts with a decimal comma
+    points["Blokady na 1000"] = points["false_per_1000"].map(lambda v: f"{v:.1f}".replace(".", ","))
+    points["Wykryte oszustwa"] = points["detected"].map(lambda v: fmt_pct(v, 1))
 color = alt.Color("Metoda:N", title=None, legend=alt.Legend(orient="top"),
                   scale=alt.Scale(domain=[*MODELS, "Proste reguły"], range=[BLUE, ORANGE, INK]))
-x = alt.X("false_per_1000:Q", title="Fałszywe blokady na 1000 transakcji")
+x = alt.X("false_per_1000:Q", title="Fałszywe blokady na 1000 transakcji",
+          axis=alt.Axis(labelExpr="replace(format(datum.value, '~g'), '.', ',')"))
 y_axis = alt.Y("detected:Q", title="Wykryte oszustwa", axis=alt.Axis(format="%"), scale=alt.Scale(domain=[0, 1]))
-tooltip = [alt.Tooltip("Metoda:N"), alt.Tooltip("false_per_1000:Q", title="Blokady na 1000", format=".1f"),
-           alt.Tooltip("detected:Q", title="Wykryte oszustwa", format=".1%")]
+tooltip = ["Metoda:N", "Blokady na 1000:N", "Wykryte oszustwa:N"]
 lines = alt.Chart(curves).mark_line(strokeWidth=2).encode(x=x, y=y_axis, color=color)
 hover_points = alt.Chart(curves).mark_point(size=80, opacity=0).encode(x=x, y=y_axis, tooltip=tooltip)
 point = alt.Chart(rules_point).mark_point(filled=True, size=120, opacity=1).encode(

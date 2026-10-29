@@ -1,6 +1,6 @@
 """Writes a summary of the results to results/: Markdown tables and two charts.
 
-Run after train.py: uv run python report.py
+Run after train.py: uv run python report.py (it also reads data/fraudTrain.csv for the largest training fraud).
 """
 
 import json
@@ -12,15 +12,15 @@ import pandas as pd
 import xgboost as xgb
 
 from src.config import (
-    DEFAULT_BLOCK_COST, DEFAULT_THRESHOLDS, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY, META_PATH, MODEL_PATH,
-    RESULTS_DIR, RISK_STEPS, SCORED_PATH, USD_PLN_SOURCE,
+    DATA_DIR, DEFAULT_BLOCK_COST, DEFAULT_THRESHOLDS, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY, META_PATH,
+    MODEL_PATH, RESULTS_DIR, RISK_STEPS, SCORED_PATH, USD_PLN, USD_PLN_SOURCE,
 )
 from src.evaluation import (
     BLOCK, PASS, VERIFY, Costs, alarm_curve, compare_at_rules_false_alarms, comparison_table, decide, evaluate,
     sensitive_variants_table,
 )
-from src.features import BASE_FEATURES, FEATURE_LABELS
-from src.formatting import BLUE, INK, ORANGE, fmt_int, fmt_pct, fmt_pln, fmt_step
+from src.features import BASE_FEATURES, FEATURE_LABELS, add_model_inputs
+from src.formatting import BLUE, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
 from src.rules import RULE_LABELS
 
 MODELS = {"XGBoost": "score_xgb", "Regresja logistyczna": "score_lr"}
@@ -60,10 +60,9 @@ def comparison_chart(df: pd.DataFrame, y: np.ndarray, false_alarms: int, rules_d
     plt.close(fig)
 
 
-def importance_chart(df: pd.DataFrame) -> pd.Series:
+def importance_chart(df: pd.DataFrame, booster: xgb.Booster) -> pd.Series:
     """Mean absolute SHAP value per business feature on a random sample of test transactions."""
     sample = df.sample(20_000, random_state=42)
-    booster = xgb.Booster(model_file=str(MODEL_PATH))
     contributions = booster.predict(xgb.DMatrix(sample[BASE_FEATURES].astype("float32")), pred_contribs=True)[:, :-1]
     importance = (
         pd.DataFrame(contributions, columns=BASE_FEATURES).T.groupby(FEATURE_LABELS).sum().T
@@ -92,6 +91,22 @@ def cheapest_thresholds(y: np.ndarray, amount: np.ndarray, scores: np.ndarray, c
     return best[0], best[1], cost[best]
 
 
+def largest_training_fraud() -> float:
+    """The largest fraud in the training data, in PLN: the model has seen no fraud above it."""
+    train = pd.read_csv(DATA_DIR / "fraudTrain.csv", usecols=["amt", "is_fraud"])
+    return train.loc[train["is_fraud"] == 1, "amt"].max() * USD_PLN
+
+
+def night_grocery_risk(booster: xgb.Booster, amount: float) -> float:
+    """Risk of a grocery purchase at 23:00 on a card that spent 4 000 zł in the last 24 h. The rest as in the
+    form on the check page: card average 250 zł, 4 h since the previous transaction."""
+    row = add_model_inputs(pd.DataFrame([{
+        "hour": 23, "amount": amount, "category": "grocery_pos", "amount_ratio": amount / 250,
+        "spent_24h": 4000, "hours_since_prev": 4,
+    }]))
+    return float(booster.predict(xgb.DMatrix(row[BASE_FEATURES].astype("float32")))[0])
+
+
 def main() -> None:
     RESULTS_DIR.mkdir(exist_ok=True)
     df = pd.read_parquet(SCORED_PATH)
@@ -103,7 +118,9 @@ def main() -> None:
     false_alarms, comparison = compare_at_rules_false_alarms(df, MODELS, costs)
     rules_detected = comparison.loc[comparison["Metoda"] == "Proste reguły", "Wykryte oszustwa"].item()
     comparison_chart(df, y, false_alarms, rules_detected)
-    importance = importance_chart(df)
+    booster = xgb.Booster(model_file=str(MODEL_PATH))
+    importance = importance_chart(df, booster)
+    largest_fraud = largest_training_fraud()
 
     rules_table = pd.DataFrame({
         "Reguła": [*RULE_LABELS.values(), "Dowolna z powyższych"],
@@ -129,10 +146,10 @@ którego modele nie widziały podczas nauki.
 
 - Zbiór: „Credit Card Transactions Fraud Detection Dataset” (Kaggle, autor kartik2112, dane syntetyczne
   z generatora Sparkov): https://www.kaggle.com/datasets/kartik2112/fraud-detection
-- Uczenie: {fmt_int(train['rows'])} transakcji ({train['from']} – {train['to']}), w tym {fmt_int(train['fraud'])}
-  oszustw ({fmt_pct(train['fraud'] / train['rows'], 2)}).
-- Test: {fmt_int(test['rows'])} transakcji ({test['from']} – {test['to']}), w tym {fmt_int(test['fraud'])}
-  oszustw ({fmt_pct(test['fraud'] / test['rows'], 2)}).
+- Uczenie: {fmt_int(train['rows'])} transakcji ({fmt_date(train['from'])} – {fmt_date(train['to'])}),
+  w tym {fmt_int(train['fraud'])} oszustw ({fmt_pct(train['fraud'] / train['rows'], 2)}).
+- Test: {fmt_int(test['rows'])} transakcji ({fmt_date(test['from'])} – {fmt_date(test['to'])}),
+  w tym {fmt_int(test['fraud'])} oszustw ({fmt_pct(test['fraud'] / test['rows'], 2)}).
 - Kwoty w zbiorze są w USD, przeliczamy je na zł: {USD_PLN_SOURCE}.
 - Model, który przepuszcza wszystko, ma trafność (accuracy) {fmt_pct(1 - y.mean(), 1)} i nie łapie żadnego
   oszustwa. Dlatego patrzymy na wykryte oszustwa, fałszywe alarmy i koszt.
@@ -199,6 +216,10 @@ zablokowane uczciwe transakcje {fmt_int(panel.honest[BLOCK])}, zweryfikowane ucz
 - Dane są syntetyczne. Generator tworzy wyraźne wzorce oszustw (noc, wysokie kwoty, seria transakcji
   w krótkim czasie), więc na prawdziwych danych wyniki byłyby prawdopodobnie niższe.
 - Uczenie i test pochodzą z tego samego generatora; test jest późniejszy w czasie (jak w praktyce).
+- Model zna tylko sytuacje z danych uczących. Największe oszustwo w nich to {fmt_pln(largest_fraud)}, więc wyższych
+  kwot model nie uznaje za bardziej podejrzane. Przykład (zakupy spożywcze w sklepie o 23:00, wydatki karty
+  w ostatnich 24 h 4 000 zł): przy 1 500 zł ryzyko wynosi {fmt_pct(night_grocery_risk(booster, 1500), 1)},
+  a przy 20 000 zł tylko {fmt_pct(night_grocery_risk(booster, 20_000), 1)}.
 - Koszty i skuteczność weryfikacji to założenia. Najtańsze progi zmieniają się razem z nimi.
 """
     (RESULTS_DIR / "summary.md").write_text(report, encoding="utf-8")

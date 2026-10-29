@@ -1,5 +1,7 @@
 """Polish number formatting and chart colors shared by the app and the report."""
 
+from datetime import date
+
 from src.features import MAX_HOURS_SINCE_PREV
 
 # Brand blue and orange (validated as a pair), ink for the rules baseline, gray for context.
@@ -19,6 +21,11 @@ def fmt_pln(value: float) -> str:
 
 def fmt_pct(share: float, digits: int = 0) -> str:
     return f"{share * 100:.{digits}f}%".replace(".", ",")
+
+
+def fmt_date(iso: str) -> str:
+    """'2020-06-21' -> '21.06.2020'."""
+    return f"{date.fromisoformat(iso):%d.%m.%Y}"
 
 
 def fmt_step(percent: float) -> str:
