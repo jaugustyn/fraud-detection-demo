@@ -12,7 +12,7 @@ import xgboost as xgb
 from src.config import META_PATH, MODEL_PATH, SCORED_PATH
 from src.evaluation import Costs
 from src.features import BASE_FEATURES, CATEGORY_LABELS, FEATURE_LABELS
-from src.formatting import BLUE, ORANGE, fmt_hours, fmt_pln
+from src.formatting import BLUE, INK, ORANGE, fmt_hours, fmt_pln
 
 
 @dataclass(frozen=True)
@@ -71,6 +71,12 @@ def explain(row: pd.Series) -> pd.DataFrame:
     return result.sort_values("Wpływ", key=abs, ascending=False, ignore_index=True)
 
 
+def readable(chart: alt.TopLevelMixin) -> alt.TopLevelMixin:
+    """Larger, darker chart text than the default, so it reads well on a projector."""
+    return (chart.configure_axis(labelFontSize=13, titleFontSize=13, labelColor=INK, titleColor=INK)
+            .configure_legend(labelFontSize=13, labelColor=INK))
+
+
 def show_explanation(row: pd.Series) -> None:
     """Chart of what raised and lowered the risk of one transaction."""
     st.markdown("**Co wpłynęło na ocenę ryzyka**")
@@ -84,5 +90,5 @@ def show_explanation(row: pd.Series) -> None:
                         scale=alt.Scale(domain=["Podnosi ryzyko", "Obniża ryzyko"], range=[ORANGE, BLUE])),
         tooltip=["Cecha:N", "Wartość:N", "Kierunek:N"],
     )
-    st.altair_chart(chart.properties(height=260), width="stretch")
+    st.altair_chart(readable(chart.properties(height=260)), width="stretch")
     st.caption("Długość słupka to siła wpływu cechy (wartości SHAP z modelu XGBoost).")

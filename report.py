@@ -1,4 +1,4 @@
-"""Writes a summary of the results to results/: Markdown tables and two charts.
+"""Writes a summary of the results to results/: Markdown tables and three charts.
 
 Run after train.py: uv run python report.py (it also reads data/fraudTrain.csv for the largest training fraud).
 """
@@ -20,7 +20,7 @@ from src.evaluation import (
     sensitive_variants_table,
 )
 from src.features import BASE_FEATURES, FEATURE_LABELS, add_model_inputs
-from src.formatting import BLUE, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
+from src.formatting import BLUE, GRAY, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
 from src.rules import RULE_LABELS
 
 MODELS = {"XGBoost": "score_xgb", "Regresja logistyczna": "score_lr"}
@@ -80,6 +80,22 @@ def importance_chart(df: pd.DataFrame, booster: xgb.Booster) -> pd.Series:
     return importance.sort_values(ascending=False)
 
 
+def cost_chart(costs_per_1000: dict[str, float]) -> None:
+    """Cost per 1000 transactions of each variant: the baselines in gray, XGBoost in blue."""
+    labels, values = list(costs_per_1000)[::-1], list(costs_per_1000.values())[::-1]
+    fig, ax = plt.subplots(figsize=(9, 4), dpi=150)
+    bars = ax.barh(labels, values, height=0.55, color=[BLUE if l.startswith("XGBoost") else GRAY for l in labels])
+    ax.bar_label(bars, labels=[fmt_pln(v) for v in values], padding=4, color=INK)
+    ax.set_xlim(right=max(values) * 1.12)  # room for the label of the longest bar
+    ax.set_xlabel("Koszt na 1000 transakcji (zł)", color=INK)
+    ax.xaxis.set_major_formatter(lambda v, _: fmt_int(v))
+    style(ax)
+    ax.grid(axis="y", visible=False)
+    fig.tight_layout()
+    fig.savefig(RESULTS_DIR / "cost_comparison.png")
+    plt.close(fig)
+
+
 def cheapest_thresholds(y: np.ndarray, amount: np.ndarray, scores: np.ndarray, costs: Costs) -> tuple[float, float, float]:
     """The cheapest pair of slider thresholds (in percent) under the given cost assumptions."""
     pairs = [(verify, block) for verify in RISK_STEPS for block in RISK_STEPS if verify <= block]
@@ -134,6 +150,12 @@ def main() -> None:
     no_system = evaluate(y, amount, np.full(len(df), PASS), costs)
     rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS), costs)
     best_verify, best_block, best_cost = cheapest_thresholds(y, amount, scores, costs)
+    cost_chart({
+        "Bez systemu": no_system.cost_per_1000,
+        "Proste reguły (blokada)": rules.cost_per_1000,
+        f"XGBoost\nweryfikacja od {fmt_step(verify_from)}, blokada od {fmt_step(block_from)}": panel.cost_per_1000,
+        f"XGBoost, najtańsze progi\nweryfikacja od {fmt_step(best_verify)}, blokada od {fmt_step(best_block)}": best_cost,
+    })
     train, test = meta["train"], meta["test"]
     ap = {k: f"{v:.3f}".replace(".", ",") for k, v in meta["average_precision"].items()}
 
@@ -196,7 +218,7 @@ bo decyzja o zablokowaniu karty nie powinna zależeć od płci ani wieku klienta
 
 ## Panel kompromisu przy domyślnych założeniach
 
-Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji {fmt_pln(DEFAULT_BLOCK_COST)},
+Wykres: `cost_comparison.png`. Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji {fmt_pln(DEFAULT_BLOCK_COST)},
 jedna weryfikacja {fmt_pln(DEFAULT_VERIFY_COST)}, weryfikacja zatrzymuje {fmt_pct(DEFAULT_VERIFY_EFFICACY)} oszustw,
 przepuszczone oszustwo kosztuje tyle, ile jego kwota.
 

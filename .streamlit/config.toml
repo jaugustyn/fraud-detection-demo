@@ -1,4 +1,4 @@
-# Colors and fonts match the product vision deck.
+# Colors and fonts match the product vision deck: navy sidebar, blue accent. Chart colors: src/formatting.py.
 [theme]
 base = "light"
 primaryColor = "#1F5FBF"
@@ -8,6 +8,13 @@ textColor = "#172033"
 borderColor = "#DDD9CE"
 font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap, sans-serif"
 headingFont = "Space Grotesk:https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&display=swap, sans-serif"
+
+[theme.sidebar]
+backgroundColor = "#172033"
+secondaryBackgroundColor = "#243049"
+textColor = "#E8ECF4"
+borderColor = "#34405A"
+primaryColor = "#7FA8F0"  # lighter blue, so the slider stands out on navy
 
 [client]
 toolbarMode = "minimal"

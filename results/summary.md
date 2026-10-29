@@ -73,7 +73,7 @@ bo decyzja o zablokowaniu karty nie powinna zależeć od płci ani wieku klienta
 
 ## Panel kompromisu przy domyślnych założeniach
 
-Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji 100 zł,
+Wykres: `cost_comparison.png`. Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji 100 zł,
 jedna weryfikacja 5 zł, weryfikacja zatrzymuje 90% oszustw,
 przepuszczone oszustwo kosztuje tyle, ile jego kwota.
 

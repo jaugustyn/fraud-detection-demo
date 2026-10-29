@@ -4,7 +4,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from src.app_data import load_scored
+from src.app_data import load_scored, readable
 from src.evaluation import (
     alarm_curve, compare_at_rules_false_alarms, comparison_table, sensitive_variants_table,
 )
@@ -62,8 +62,8 @@ lines = alt.Chart(curves).mark_line(strokeWidth=2).encode(x=x, y=y_axis, color=c
 hover_points = alt.Chart(curves).mark_point(size=80, opacity=0).encode(x=x, y=y_axis, tooltip=tooltip)
 point = alt.Chart(rules_point).mark_point(filled=True, size=120, opacity=1).encode(
     x=x, y=y_axis, color=color, tooltip=tooltip)
-point_label = point.mark_text(align="left", dx=10, dy=16, color=INK).encode(text="Metoda:N")
-st.altair_chart((lines + hover_points + point + point_label).properties(height=360), width="stretch")
+point_label = point.mark_text(align="left", dx=10, dy=16, color=INK, fontSize=13).encode(text="Metoda:N")
+st.altair_chart(readable((lines + hover_points + point + point_label).properties(height=360)), width="stretch")
 st.caption("Każdy punkt linii to inny próg modelu. Im wyżej i bardziej w lewo, tym lepiej.")
 
 st.subheader("Czy model potrzebuje płci i wieku klienta?")
