@@ -1,4 +1,4 @@
-"""Cached data access, scoring and decision explanations for the app."""
+"""Cached data access, scoring, decision display and explanations for the app."""
 
 import json
 from dataclasses import dataclass
@@ -9,10 +9,12 @@ import pandas as pd
 import streamlit as st
 import xgboost as xgb
 
-from src.config import META_PATH, MODEL_PATH, SCORED_PATH
-from src.evaluation import Costs
+from src.config import META_PATH, MODEL_PATH, RISK_STEPS, SCORED_PATH
+from src.evaluation import BLOCK, DECISION_LABELS, PASS, VERIFY, Costs, decide
 from src.features import BASE_FEATURES, CATEGORY_LABELS, FEATURE_LABELS
-from src.formatting import BLUE, INK, ORANGE, fmt_hours, fmt_pln
+from src.formatting import BLUE, DECISION_COLORS, GRID, INK, ORANGE, fmt_hours, fmt_pct, fmt_pln, fmt_step
+
+DECISION_ICONS = {PASS: ":material/check_circle:", VERIFY: ":material/sms:", BLOCK: ":material/block:"}
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,9 @@ class Settings:
     verify_from: float  # risk score (0-1) from which a transaction is verified
     block_from: float  # risk score (0-1) from which a transaction is blocked
     costs: Costs
+
+    def decide(self, risk: float) -> int:
+        return decide(np.array([risk]), self.verify_from, self.block_from)[0]
 
 
 @st.cache_data
@@ -75,6 +80,51 @@ def readable(chart: alt.TopLevelMixin) -> alt.TopLevelMixin:
     """Larger, darker chart text than the default, so it reads well on a projector."""
     return (chart.configure_axis(labelFontSize=13, titleFontSize=13, labelColor=INK, titleColor=INK)
             .configure_legend(labelFontSize=13, labelColor=INK))
+
+
+def slider_position(risk: float) -> float:
+    """Where a risk (0-1) lies on the threshold slider, whose steps are evenly spaced (0 = left end, 1 = right)."""
+    return float(np.interp(risk, np.array(RISK_STEPS) / 100, np.linspace(0, 1, len(RISK_STEPS))))
+
+
+def show_thresholds(settings: Settings, where_to_change: bool = True) -> None:
+    """The three decision zones of the current thresholds, as colored badges."""
+    verify, block = fmt_step(settings.verify_from * 100), fmt_step(settings.block_from * 100)
+    text = (f":green-badge[{DECISION_ICONS[PASS]} Przepuść poniżej {verify}] "
+            f":yellow-badge[{DECISION_ICONS[VERIFY]} Weryfikacja {verify}–{block}] "
+            f":red-badge[{DECISION_ICONS[BLOCK]} Blokada od {block}]")
+    if where_to_change:
+        text += " :gray[Progi zmienisz w Panelu kompromisu.]"
+    st.markdown(text)
+
+
+def show_assessment(risk: float, settings: Settings) -> None:
+    """Risk of one transaction, the proposed decision in its color and the risk on the slider's scale."""
+    decision = settings.decide(risk)
+    st.metric("Ryzyko oszustwa", fmt_pct(risk, 1))
+    alert = {PASS: st.success, VERIFY: st.warning, BLOCK: st.error}[decision]
+    alert(f"**{DECISION_LABELS[decision]}**", icon=DECISION_ICONS[decision])
+    _risk_meter(risk, decision, settings)
+
+
+def _risk_meter(risk: float, decision: int, settings: Settings) -> None:
+    """Risk as a bar on the same uneven scale as the threshold slider, colored by the decision."""
+    x = alt.X("start:Q", scale=alt.Scale(domain=[0, 1]), axis=None)
+    bar = {"y": alt.value(8), "y2": alt.value(20)}
+
+    track = alt.Chart(pd.DataFrame({"start": [0.0], "end": [1.0]})).mark_bar(cornerRadius=6, color=GRID).encode(
+        x=x, x2="end:Q", **bar)
+    fill = alt.Chart(pd.DataFrame({
+        "start": [0.0], "end": [slider_position(risk)], "Ryzyko": [fmt_pct(risk, 1)],
+    })).mark_bar(cornerRadius=6, color=DECISION_COLORS[decision]).encode(x=x, x2="end:Q", tooltip=["Ryzyko:N"], **bar)
+    thresholds = pd.DataFrame({
+        "start": [slider_position(settings.verify_from), slider_position(settings.block_from)],
+        "label": [fmt_step(settings.verify_from * 100), fmt_step(settings.block_from * 100)],
+    })
+    ticks = alt.Chart(thresholds).mark_rule(color=INK, strokeWidth=2).encode(x=x, y=alt.value(2), y2=alt.value(26))
+    labels = alt.Chart(thresholds).mark_text(color=INK, fontSize=13, baseline="top").encode(
+        x=x, y=alt.value(30), text="label:N")
+    st.altair_chart((track + fill + ticks + labels).properties(height=48).configure_view(stroke=None), width="stretch")
 
 
 def show_explanation(row: pd.Series) -> None:

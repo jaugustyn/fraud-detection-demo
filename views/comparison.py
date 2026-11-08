@@ -1,13 +1,11 @@
-"""Comparison of methods: rules vs logistic regression vs XGBoost, and the gender/age variant."""
+"""Comparison of methods: rules vs logistic regression vs XGBoost."""
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
 from src.app_data import load_scored, readable
-from src.evaluation import (
-    alarm_curve, compare_at_rules_false_alarms, comparison_table, sensitive_variants_table,
-)
+from src.evaluation import alarm_curve, compare_at_rules_false_alarms, comparison_table
 from src.formatting import BLUE, INK, ORANGE, fmt_int, fmt_pct
 from src.rules import RULE_LABELS
 
@@ -65,13 +63,6 @@ point = alt.Chart(rules_point).mark_point(filled=True, size=120, opacity=1).enco
 point_label = point.mark_text(align="left", dx=10, dy=16, color=INK, fontSize=13).encode(text="Metoda:N")
 st.altair_chart(readable((lines + hover_points + point + point_label).properties(height=360)), width="stretch")
 st.caption("Każdy punkt linii to inny próg modelu. Im wyżej i bardziej w lewo, tym lepiej.")
-
-st.subheader("Czy model potrzebuje płci i wieku klienta?")
-variants = sensitive_variants_table(df, false_alarms)
-st.dataframe(variants, hide_index=True, width="stretch",
-             column_config={c: right_aligned for c in variants.columns[1:]})
-st.caption("Odsetek wykrytych oszustw. Płeć i wiek pomagają, zwłaszcza przy ostrym limicie, ale ich nie używamy: "
-           "blokada karty nie powinna zależeć od płci ani wieku.")
 
 st.info(
     f"**Dlaczego nie patrzymy na trafność (accuracy)?** Oszustwa to {fmt_pct(y.mean(), 2)} transakcji. "

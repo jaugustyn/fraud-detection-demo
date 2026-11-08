@@ -1,5 +1,6 @@
-"""Shared settings: paths, currency conversion and default cost assumptions."""
+"""Shared settings: paths, currency conversion, default cost assumptions and example transactions."""
 
+from datetime import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,3 +24,14 @@ DEFAULT_THRESHOLDS = (10, 50)  # verify from, block from
 DEFAULT_BLOCK_COST = 100.0  # PLN per blocked honest transaction (hotline call, lost sale, annoyed customer)
 DEFAULT_VERIFY_COST = 5.0  # PLN per verification (SMS / 3-D Secure, customer inconvenience)
 DEFAULT_VERIFY_EFFICACY = 0.9  # share of fraud attempts stopped by verification
+
+# Ready-made inputs of the check page, one per decision at the default thresholds; the first one is shown on
+# start. "Typowe zakupy" uses rounded medians of honest transactions in the test data.
+CHECK_EXAMPLES = {
+    "Typowe zakupy": dict(amount=200.0, time_of_day=time(14, 0), category="grocery_pos",
+                          card_mean=250.0, spent_24h=800.0, hours_since_prev=4.0),
+    "Zakupy online w dzień": dict(amount=3000.0, time_of_day=time(14, 0), category="shopping_net",
+                                  card_mean=250.0, spent_24h=4000.0, hours_since_prev=4.0),
+    "Zakupy online w nocy": dict(amount=3000.0, time_of_day=time(23, 0), category="shopping_net",
+                                 card_mean=250.0, spent_24h=4000.0, hours_since_prev=4.0),
+}

@@ -9,6 +9,9 @@ BLUE = "#1F5FBF"
 ORANGE = "#EB6834"
 INK = "#172033"
 GRAY = "#B5B2A8"
+GRID = "#E1E0D9"
+# Status colors of the three decisions (pass, verify, block); always shown next to the decision name.
+DECISION_COLORS = ["#0CA30C", "#FAB219", "#D03B3B"]
 
 
 def fmt_int(value: float) -> str:

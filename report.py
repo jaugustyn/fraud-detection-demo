@@ -1,10 +1,10 @@
 """Writes a summary of the results to results/: Markdown tables and three charts.
 
-Run after train.py: uv run python report.py (it also reads data/fraudTrain.csv for the largest training fraud).
+Run after train.py: uv run python report.py
 """
 
 import json
-from datetime import date
+from datetime import date, time
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,19 +12,18 @@ import pandas as pd
 import xgboost as xgb
 
 from src.config import (
-    DATA_DIR, DEFAULT_BLOCK_COST, DEFAULT_THRESHOLDS, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY, META_PATH,
-    MODEL_PATH, RESULTS_DIR, RISK_STEPS, SCORED_PATH, USD_PLN, USD_PLN_SOURCE,
+    CHECK_EXAMPLES, DEFAULT_BLOCK_COST, DEFAULT_THRESHOLDS, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY, META_PATH,
+    MODEL_PATH, RESULTS_DIR, RISK_STEPS, SCORED_PATH, USD_PLN_SOURCE,
 )
 from src.evaluation import (
     BLOCK, PASS, VERIFY, Costs, alarm_curve, compare_at_rules_false_alarms, comparison_table, decide, evaluate,
     sensitive_variants_table,
 )
-from src.features import BASE_FEATURES, FEATURE_LABELS, add_model_inputs
-from src.formatting import BLUE, GRAY, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
+from src.features import BASE_FEATURES, FEATURE_LABELS, transaction_input
+from src.formatting import BLUE, GRAY, GRID, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
 from src.rules import RULE_LABELS
 
 MODELS = {"XGBoost": "score_xgb", "Regresja logistyczna": "score_lr"}
-GRID = "#E1E0D9"
 
 
 def md_table(df: pd.DataFrame) -> str:
@@ -107,20 +106,12 @@ def cheapest_thresholds(y: np.ndarray, amount: np.ndarray, scores: np.ndarray, c
     return best[0], best[1], cost[best]
 
 
-def largest_training_fraud() -> float:
-    """The largest fraud in the training data, in PLN: the model has seen no fraud above it."""
-    train = pd.read_csv(DATA_DIR / "fraudTrain.csv", usecols=["amt", "is_fraud"])
-    return train.loc[train["is_fraud"] == 1, "amt"].max() * USD_PLN
-
-
 def night_grocery_risk(booster: xgb.Booster, amount: float) -> float:
     """Risk of a grocery purchase at 23:00 on a card that spent 4 000 zł in the last 24 h. The rest as in the
-    form on the check page: card average 250 zł, 4 h since the previous transaction."""
-    row = add_model_inputs(pd.DataFrame([{
-        "hour": 23, "amount": amount, "category": "grocery_pos", "amount_ratio": amount / 250,
-        "spent_24h": 4000, "hours_since_prev": 4,
-    }]))
-    return float(booster.predict(xgb.DMatrix(row[BASE_FEATURES].astype("float32")))[0])
+    first example on the check page: card average 250 zł, 4 h since the previous transaction."""
+    example = CHECK_EXAMPLES["Typowe zakupy"] | {"amount": amount, "time_of_day": time(23, 0), "spent_24h": 4000.0}
+    row = transaction_input(**example)[BASE_FEATURES].to_frame().T.astype("float32")
+    return float(booster.predict(xgb.DMatrix(row))[0])
 
 
 def main() -> None:
@@ -136,7 +127,7 @@ def main() -> None:
     comparison_chart(df, y, false_alarms, rules_detected)
     booster = xgb.Booster(model_file=str(MODEL_PATH))
     importance = importance_chart(df, booster)
-    largest_fraud = largest_training_fraud()
+    largest_fraud = meta["train"]["max_fraud_amount"]
 
     rules_table = pd.DataFrame({
         "Reguła": [*RULE_LABELS.values(), "Dowolna z powyższych"],
@@ -241,7 +232,8 @@ zablokowane uczciwe transakcje {fmt_int(panel.honest[BLOCK])}, zweryfikowane ucz
 - Model zna tylko sytuacje z danych uczących. Największe oszustwo w nich to {fmt_pln(largest_fraud)}, więc wyższych
   kwot model nie uznaje za bardziej podejrzane. Przykład (zakupy spożywcze w sklepie o 23:00, wydatki karty
   w ostatnich 24 h 4 000 zł): przy 1 500 zł ryzyko wynosi {fmt_pct(night_grocery_risk(booster, 1500), 1)},
-  a przy 20 000 zł tylko {fmt_pct(night_grocery_risk(booster, 20_000), 1)}.
+  a przy 20 000 zł tylko {fmt_pct(night_grocery_risk(booster, 20_000), 1)}. Dlatego ekran „Sprawdź transakcję”
+  przyjmuje kwoty tylko do {fmt_pln(largest_fraud)}.
 - Koszty i skuteczność weryfikacji to założenia. Najtańsze progi zmieniają się razem z nimi.
 """
     (RESULTS_DIR / "summary.md").write_text(report, encoding="utf-8")

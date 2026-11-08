@@ -1,5 +1,7 @@
 """Loading the Sparkov card transactions and building model features."""
 
+from datetime import date, datetime, time
+
 import numpy as np
 import pandas as pd
 
@@ -100,3 +102,17 @@ def add_model_inputs(df: pd.DataFrame) -> pd.DataFrame:
     df["log_spent_24h"] = np.log1p(df["spent_24h"].clip(lower=0))
     df["log_hours_since_prev"] = np.log1p(df["hours_since_prev"])
     return df
+
+
+def transaction_input(amount: float, time_of_day: time, category: str, card_mean: float, spent_24h: float,
+                      hours_since_prev: float) -> pd.Series:
+    """One transaction typed in by hand (check page, report), with its model inputs."""
+    return add_model_inputs(pd.DataFrame([{
+        "ts": datetime.combine(date.today(), time_of_day),  # only the time of day matters
+        "hour": time_of_day.hour,
+        "amount": amount,
+        "category": category,
+        "amount_ratio": amount / card_mean,
+        "spent_24h": spent_24h,
+        "hours_since_prev": hours_since_prev,
+    }])).iloc[0]

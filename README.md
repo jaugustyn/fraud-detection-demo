@@ -7,14 +7,17 @@ wyjaśnia ją i pokazuje koszt kompromisu w złotówkach.
 
 ## Ekrany
 
-- **Panel kompromisu** – suwak z dwoma progami ryzyka. Na żywo widać, ile oszustw wykrywamy, ile uczciwych
-  transakcji blokujemy (fałszywe blokady) lub weryfikujemy i ile to kosztuje na 1000 transakcji.
+- **Panel kompromisu** – suwak z dwoma progami ryzyka (weryfikacja, blokada). Na żywo widać, ile oszustw
+  wykrywamy, ile uczciwych transakcji blokujemy (fałszywe blokady) lub weryfikujemy i ile to kosztuje
+  na 1000 transakcji. Progi obowiązują też na ekranach Transakcje i Sprawdź transakcję.
 - **Porównanie metod** – proste reguły vs regresja logistyczna vs XGBoost przy tej samej liczbie
-  fałszywych blokad oraz wariant modelu z płcią i wiekiem klienta.
-- **Transakcje** – transakcje z wybranego dnia z proponowaną decyzją. Po zaznaczeniu: które cechy podniosły
-  lub obniżyły ryzyko (wartości SHAP z XGBoost).
-- **Sprawdź transakcję** – ręcznie wpisana transakcja (kwota, godzina, kategoria, historia karty):
-  ryzyko, decyzja i wyjaśnienie.
+  fałszywych blokad.
+- **Transakcje** – transakcje z wybranego dnia: wstrzymane albo pomyłki modelu (przepuszczone oszustwa,
+  fałszywe blokady). Dla wybranej: ryzyko, decyzja i które cechy podniosły lub obniżyły ryzyko (wartości SHAP
+  z XGBoost).
+- **Sprawdź transakcję** – gotowy przykład albo ręcznie wpisana transakcja (kwota, godzina, kategoria,
+  historia karty): ryzyko, decyzja i wyjaśnienie. Kwota najwyżej taka jak największe oszustwo w danych
+  uczących (5 401 zł), bo wyższych kwot model nie zna.
 
 Jak korzystać z aplikacji, krok po kroku: [docs/tutorial.md](docs/tutorial.md).
 
@@ -48,7 +51,8 @@ uv run python report.py     # opcjonalnie: odświeża tabele i wykresy w results
 ```
 
 Windows ze Smart App Control: ustaw `UV_PYTHON_PREFERENCE=only-system`, żeby uv używał Pythona z python.org
-zamiast pobierać własny (system blokuje jego niepodpisane pliki).
+zamiast pobierać własny (system blokuje jego niepodpisane pliki). Jeśli system blokuje też `streamlit.exe`,
+uruchom aplikację przez `uv run python -m streamlit run app.py`.
 
 ## Jak to działa
 
@@ -56,10 +60,11 @@ zamiast pobierać własny (system blokuje jego niepodpisane pliki).
   (06.2020 – 12.2020). Test jest późniejszy w czasie, jak w praktyce.
 - **Cechy:** kwota, godzina, kategoria sklepu oraz historia karty: kwota względem dotychczasowej średniej,
   wydatki w ostatnich 24 h, czas od poprzedniej transakcji (liczone tylko z wcześniejszych transakcji).
-  Nie używamy imienia, adresu ani zawodu. Płeć i wiek są tylko w wariancie porównawczym.
+  Nie używamy imienia, adresu ani zawodu. Płeć i wiek są tylko w wariancie porównawczym w raporcie
+  (`results/summary.md`).
 - **Metody:** trzy proste reguły (punkt odniesienia), regresja logistyczna, XGBoost.
 - **Waluta:** kwoty w zbiorze są w USD, przeliczamy je na zł kursem średnim NBP z 23.10.2026 (3,9247 zł).
-- **Model kosztów** (założenia do zmiany w aplikacji, nie dane rynkowe):
+- **Model kosztów** (nasze stałe założenia, nie dane rynkowe; zmienia się je w `src/config.py`):
   - przepuszczone oszustwo kosztuje tyle, ile jego kwota,
   - weryfikacja kosztuje 5 zł i zatrzymuje 90% oszustw,
   - blokada zatrzymuje każde oszustwo, ale zablokowana uczciwa transakcja kosztuje 100 zł.
@@ -67,17 +72,17 @@ zamiast pobierać własny (system blokuje jego niepodpisane pliki).
 ## Struktura
 
 ```
-app.py              aplikacja Streamlit: panel boczny z progami i nawigacja
+app.py              aplikacja Streamlit: nawigacja i ustawienia wspólne dla ekranów
 views/              cztery ekrany aplikacji
 train.py            uczenie modeli i zapis wyników do artifacts/
 report.py           podsumowanie wyników: tabele i wykresy (results/)
 results/            summary.md i wykresy
 docs/               tutorial ze zrzutami ekranu
 src/
-  config.py         ścieżki, kurs NBP, domyślne założenia kosztowe
+  config.py         ścieżki, kurs NBP, założenia kosztowe, gotowe przykłady transakcji
   features.py       wczytanie danych i cechy
   rules.py          proste reguły
   evaluation.py     decyzje, model kosztów, porównanie metod
-  app_data.py       wczytywanie wyników w aplikacji i wyjaśnienia decyzji
+  app_data.py       wczytywanie wyników w aplikacji, progi, decyzje i ich wyjaśnienia
   formatting.py     formatowanie liczb i kolory wykresów
 ```

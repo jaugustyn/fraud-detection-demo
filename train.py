@@ -40,6 +40,8 @@ def summary(part: pd.DataFrame) -> dict:
         "fraud": int(part["is_fraud"].sum()),
         "from": part["ts"].min().strftime("%Y-%m-%d"),
         "to": part["ts"].max().strftime("%Y-%m-%d"),
+        # The model has seen no fraud above it; the check page does not accept higher amounts.
+        "max_fraud_amount": float(part.loc[part["is_fraud"] == 1, "amount"].max()),
     }
 
 

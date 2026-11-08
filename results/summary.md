@@ -1,6 +1,6 @@
 # Wyniki – Strażnik Płatności
 
-Wygenerowane przez `report.py` (29.10.2026). Wszystkie liczby dotyczą zbioru testowego,
+Wygenerowane przez `report.py` (08.11.2026). Wszystkie liczby dotyczą zbioru testowego,
 którego modele nie widziały podczas nauki.
 
 ## Dane
@@ -96,5 +96,6 @@ zablokowane uczciwe transakcje 199, zweryfikowane uczciwe transakcje
 - Model zna tylko sytuacje z danych uczących. Największe oszustwo w nich to 5 401 zł, więc wyższych
   kwot model nie uznaje za bardziej podejrzane. Przykład (zakupy spożywcze w sklepie o 23:00, wydatki karty
   w ostatnich 24 h 4 000 zł): przy 1 500 zł ryzyko wynosi 100,0%,
-  a przy 20 000 zł tylko 80,7%.
+  a przy 20 000 zł tylko 80,7%. Dlatego ekran „Sprawdź transakcję”
+  przyjmuje kwoty tylko do 5 401 zł.
 - Koszty i skuteczność weryfikacji to założenia. Najtańsze progi zmieniają się razem z nimi.

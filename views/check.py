@@ -1,52 +1,62 @@
-"""Manual check: type in a transaction and see how the model scores and explains it."""
+"""Manual check: pick an example or type in a transaction and see how the model scores and explains it."""
 
-from datetime import datetime, time
-
-import numpy as np
-import pandas as pd
 import streamlit as st
 
-from src.app_data import score_transaction, show_explanation
-from src.evaluation import DECISION_LABELS, decide
-from src.features import CATEGORY_LABELS, MAX_HOURS_SINCE_PREV, add_model_inputs
-from src.formatting import fmt_pct
+from src.app_data import load_meta, score_transaction, show_assessment, show_explanation
+from src.config import CHECK_EXAMPLES
+from src.features import CATEGORY_LABELS, MAX_HOURS_SINCE_PREV, transaction_input
+from src.formatting import fmt_int
 
 settings = st.session_state.settings
 categories = list(CATEGORY_LABELS)
+max_amount = round(load_meta()["train"]["max_fraud_amount"])
+first_example = next(iter(CHECK_EXAMPLES))
+
+# Widget values are dropped while another page is shown, so the page starts again from the first example.
+for key, value in {"example": first_example, **CHECK_EXAMPLES[first_example]}.items():
+    st.session_state.setdefault(key, value)
+
+
+def fill_in_example() -> None:
+    if st.session_state.example:
+        st.session_state.update(CHECK_EXAMPLES[st.session_state.example])
+
+
+def clear_example() -> None:
+    st.session_state.example = None
+
 
 st.title("Sprawdź transakcję")
-st.caption("Wpisz dane transakcji i zobacz, jak oceni ją model. Na start: typowa uczciwa transakcja z danych.")
+st.caption("Wybierz przykład albo wpisz własne dane i zobacz, jak oceni je model.")
+st.segmented_control("Gotowe przykłady", list(CHECK_EXAMPLES), key="example", on_change=fill_in_example)
 
-col_amount, col_time, col_category = st.columns(3)
-amount = col_amount.number_input("Kwota (zł)", min_value=1.0, value=200.0, step=50.0, format="%.0f")
-time_of_day = col_time.time_input("Godzina", value=time(14, 0))
-category = col_category.selectbox("Kategoria sklepu", categories, index=categories.index("grocery_pos"),
-                                  format_func=CATEGORY_LABELS.get)
+col_transaction, col_card, col_result = st.columns(3)
+with col_transaction.container(border=True, height="stretch"):
+    st.markdown("**Transakcja**")
+    amount = st.number_input(
+        f"Kwota (zł, maks. {fmt_int(max_amount)})", min_value=1.0, max_value=float(max_amount), step=50.0,
+        format="%.0f", key="amount", on_change=clear_example,
+        help="Tyle wynosi największe oszustwo w danych uczących. Wyższych kwot model nie zna i nie uznaje ich "
+             "za bardziej podejrzane.",
+    )
+    time_of_day = st.time_input("Godzina", key="time_of_day", on_change=clear_example)
+    category = st.selectbox("Kategoria sklepu", categories, format_func=CATEGORY_LABELS.get, key="category",
+                            on_change=clear_example)
 
-# Defaults are rounded medians of honest transactions in the test data.
-with st.expander("Historia karty"):
-    col_mean, col_24h, col_prev = st.columns(3)
-    card_mean = col_mean.number_input("Średnia kwota transakcji na tej karcie (zł)", min_value=1.0, value=250.0,
-                                      step=50.0, format="%.0f")
-    spent_24h = col_24h.number_input("Wydatki karty w ostatnich 24 h (zł)", min_value=0.0, value=800.0, step=100.0,
-                                     format="%.0f", help="Bez sprawdzanej transakcji.")
-    hours_since_prev = col_prev.number_input("Godziny od poprzedniej transakcji karty", min_value=0.0,
-                                             max_value=float(MAX_HOURS_SINCE_PREV), value=4.0, step=1.0)
+with col_card.container(border=True, height="stretch"):
+    st.markdown("**Historia karty**")
+    card_mean = st.number_input("Średnia kwota transakcji (zł)", min_value=1.0, step=50.0, format="%.0f",
+                                key="card_mean", on_change=clear_example)
+    spent_24h = st.number_input("Wydatki w ostatnich 24 h (zł)", min_value=0.0, step=100.0, format="%.0f",
+                                key="spent_24h", on_change=clear_example, help="Bez sprawdzanej transakcji.")
+    hours_since_prev = st.number_input("Godziny od poprzedniej transakcji", min_value=0.0,
+                                       max_value=float(MAX_HOURS_SINCE_PREV), step=1.0, format="%.1f",
+                                       key="hours_since_prev", on_change=clear_example)
 
-transaction = add_model_inputs(pd.DataFrame([{
-    "ts": datetime.combine(datetime.today(), time_of_day),  # only the time of day matters
-    "hour": time_of_day.hour,
-    "amount": amount,
-    "category": category,
-    "amount_ratio": amount / card_mean,
-    "spent_24h": spent_24h,
-    "hours_since_prev": hours_since_prev,
-}])).iloc[0]
-risk = score_transaction(transaction)
-decision = decide(np.array([risk]), settings.verify_from, settings.block_from)[0]
+transaction = transaction_input(amount, time_of_day, category, card_mean, spent_24h, hours_since_prev)
+with col_result.container(border=True, height="stretch"):
+    st.markdown("**Ocena modelu**")
+    show_assessment(score_transaction(transaction), settings)
+    st.caption("Progi zmienisz w Panelu kompromisu.")
 
-left, right = st.columns([1, 3], gap="large")
-left.metric("Ryzyko oszustwa", fmt_pct(risk, 1), border=True)
-left.metric("Proponowana decyzja", DECISION_LABELS[decision], border=True)
-with right:
-    show_explanation(transaction)
+show_explanation(transaction)

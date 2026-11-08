@@ -14,7 +14,7 @@ backgroundColor = "#172033"
 secondaryBackgroundColor = "#243049"
 textColor = "#E8ECF4"
 borderColor = "#34405A"
-primaryColor = "#7FA8F0"  # lighter blue, so the slider stands out on navy
+primaryColor = "#7FA8F0"  # lighter blue, so accents stand out on navy
 
 [client]
 toolbarMode = "minimal"

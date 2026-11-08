@@ -7,26 +7,24 @@ wybrany kompromis między złapanymi oszustwami a zatrzymanymi uczciwymi transak
 Aplikacja działa na 555 719 transakcjach testowych z drugiej połowy 2020 roku (dane syntetyczne z Kaggle).
 Jak ją uruchomić, opisuje [README](../README.md). Liczby w tym tutorialu dotyczą ustawień domyślnych.
 
-## Panel boczny: progi decyzji
-
-Najważniejszy element całej aplikacji to suwak **Ryzyko oszustwa** z dwoma uchwytami:
-
-- poniżej pierwszego progu transakcja **przechodzi**,
-- między progami klient musi ją **potwierdzić** (weryfikacja),
-- od drugiego progu transakcja jest **blokowana**.
-
-Domyślnie: weryfikacja od 10%, blokada od 50%. Progi działają na wszystkich ekranach.
-Skala suwaka jest gęstsza przy niskim ryzyku, bo tam jest prawie każda transakcja.
-
-Pod suwakiem jest zwinięta sekcja **Założenia kosztowe**: koszt zablokowania uczciwej transakcji (100 zł),
-koszt jednej weryfikacji (5 zł) i skuteczność weryfikacji (90%). To nasze założenia, nie dane rynkowe.
-Zmieniają tylko wyliczenia kosztów.
+Ekrany wybierasz w panelu bocznym, w kolejności, w jakiej najlepiej je oglądać.
 
 ## 1. Panel kompromisu
 
 ![Panel kompromisu](img/panel.png)
 
-Cztery kafelki na górze odpowiadają na pytanie „co dają moje progi?”:
+Najważniejszy element całej aplikacji to suwak **Progi decyzji** na górze panelu, z dwoma uchwytami:
+
+- poniżej pierwszego progu transakcja **przechodzi**,
+- między progami klient musi ją **potwierdzić** (weryfikacja),
+- od drugiego progu transakcja jest **blokowana**.
+
+Domyślnie: weryfikacja od 10%, blokada od 50%. Kolorowe etykiety pod suwakiem pokazują te trzy strefy.
+Progi działają też na ekranach Transakcje i Sprawdź transakcję i zostają zapamiętane, gdy przechodzisz między
+ekranami (odświeżenie strony przywraca domyślne). Skala suwaka jest gęstsza przy niskim ryzyku, bo tam jest
+prawie każda transakcja.
+
+Cztery kafelki pod suwakiem odpowiadają na pytanie „co dają moje progi?”:
 
 | Kafelek | Co znaczy | Domyślnie |
 |---|---|---|
@@ -36,7 +34,9 @@ Cztery kafelki na górze odpowiadają na pytanie „co dają moje progi?”:
 | Koszt na 1000 transakcji | Przepuszczone oszustwa + blokady + weryfikacje | 415 zł (−95% wobec braku systemu) |
 
 Wykres pod kafelkami porównuje koszt z dwoma punktami odniesienia: brakiem systemu (8 004 zł) i prostymi
-regułami (1 486 zł). Tabela „Co dzieje się z transakcjami” rozbija wynik na trzy decyzje.
+regułami (1 486 zł). Pod wykresem są założenia kosztowe: przepuszczone oszustwo kosztuje tyle, ile jego kwota,
+weryfikacja 5 zł i zatrzymuje 90% oszustw, zablokowana uczciwa transakcja 100 zł. To nasze założenia, nie dane
+rynkowe. Rozwijana sekcja „Szczegóły” rozbija wynik na trzy decyzje.
 
 **Spróbuj:**
 
@@ -45,8 +45,6 @@ regułami (1 486 zł). Tabela „Co dzieje się z transakcjami” rozbija wynik 
    w uczciwe transakcje.
 2. Wróć do 50% i przesuń próg weryfikacji z 10% na 0,5%. Koszt spada do 219 zł i wykrywamy 98% oszustw,
    ale zbędnych weryfikacji jest już 5 496. Najtańsze ustawienie nie musi być najlepsze dla klientów.
-3. Rozwiń „Założenia kosztowe” i zmień koszt blokady na 300 zł. Koszt przy domyślnych progach rośnie
-   z 415 do 487 zł. Najlepsze progi zależą od tego, ile naprawdę kosztuje zablokowany klient.
 
 ## 2. Porównanie metod
 
@@ -63,52 +61,61 @@ uczciwych transakcji co proste reguły (4 013), a porównujemy, ile oszustw przy
 pionowa to wykryte oszustwa. Im wyżej i bardziej w lewo, tym lepiej. Linia XGBoost jest wyżej przy każdej
 liczbie fałszywych blokad.
 
-Tabela „Czy model potrzebuje płci i wieku klienta?” pokazuje, że te cechy poprawiają wynik, zwłaszcza przy
-ostrym limicie blokad (94,9% zamiast 90,6%). Mimo to aplikacja ich nie używa: decyzja o zablokowaniu karty
-nie powinna zależeć od płci ani wieku.
+Ten ekran nie zależy od progów z Panelu kompromisu: porównanie zawsze dotyczy tej samej liczby blokad.
 
 ## 3. Transakcje
 
 ![Transakcje](img/transactions.png)
 
 Lista transakcji z jednego dnia, od najbardziej ryzykownych. Domyślnie pokazuje 4 października 2020, czyli dzień
-z największą liczbą oszustw (40 na 2 788 transakcji), i tylko transakcje wstrzymane (weryfikacja lub blokada).
+z największą liczbą oszustw (40 na 2 788 transakcji). Przełącznik **Pokaż** ma dwie opcje:
 
-Kolumna **Oszustwo wg danych** to prawdziwa etykieta ze zbioru testowego. W banku nikt by jej nie znał,
-tutaj pozwala sprawdzić, czy model trafia.
+- **Wstrzymane**: transakcje skierowane do weryfikacji lub zablokowane (tego dnia 39),
+- **Pomyłki modelu**: przepuszczone oszustwa i fałszywe blokady, czyli dwa rodzaje błędów każdego systemu.
+
+Pod tabelą od razu widać ryzyko, decyzję i wyjaśnienie pierwszej transakcji. Zaznacz inny wiersz, aby zobaczyć
+jego wyjaśnienie. Pomarańczowe słupki podnoszą ryzyko, niebieskie je obniżają. Kolumna **Oszustwo wg danych** to
+prawdziwa etykieta ze zbioru testowego. W banku nikt by jej nie znał, tutaj pozwala sprawdzić, czy model trafia.
 
 **Spróbuj:**
 
-1. Zaznacz pierwszy wiersz (22:00, zakupy spożywcze, 1 250 zł, ryzyko 100%). Pod tabelą pojawi się
-   wyjaśnienie: najmocniej podniosły ryzyko kwota, kategoria sklepu i wydatki karty w ostatnich 24 h (7 308 zł).
-   Pomarańczowe słupki podnoszą ryzyko, niebieskie je obniżają.
-2. Wyłącz „Tylko wstrzymane” i posortuj tabelę po kolumnie „Oszustwo wg danych” (kliknij nagłówek).
-   Znajdziesz dwa oszustwa, które model przepuścił, oba z ryzykiem ok. 4%. Żaden model nie łapie wszystkiego.
+1. Przy „Wstrzymanych” pierwsza transakcja to 22:00, zakupy spożywcze, 1 250 zł, ryzyko 100% i blokada.
+   Najmocniej podniosły ryzyko kwota, kategoria sklepu i wydatki karty w ostatnich 24 h (7 308 zł).
+2. Przełącz na „Pomyłki modelu”. Tego dnia model przepuścił dwa oszustwa, oba z ryzykiem ok. 4%: 32 zł
+   w sklepie o 15:45 i 423 zł w restauracji o 5:34. W obu ryzyko obniżyły kwota i godzina, bo żadna
+   z tych transakcji nie była nocna. Fałszywych blokad tego dnia nie ma, najwięcej jest 14 grudnia 2020 (11).
+   Żaden model nie łapie wszystkiego.
+3. Na Panelu kompromisu ustaw próg weryfikacji na 2% i wróć tutaj. Oba oszustwa trafiają teraz do weryfikacji,
+   więc znikają z listy pomyłek. W całych danych wykrywamy wtedy 96,7% oszustw zamiast 93,2%, ale zbędnych
+   weryfikacji jest 2 388 zamiast 747. Znów kompromis.
 
 ## 4. Sprawdź transakcję
 
 ![Sprawdź transakcję](img/check.png)
 
-Tu wpisujesz własną transakcję i od razu widzisz ryzyko, decyzję i wyjaśnienie. Na start formularz zawiera
-typową uczciwą transakcję: 200 zł o 14:00 w sklepie spożywczym (ryzyko 0%). Sekcja **Historia karty** opisuje,
-jak karta była używana wcześniej: średnią kwotę (250 zł), wydatki w ostatnich 24 h (800 zł) i czas od poprzedniej
-transakcji (4 h).
+Tu sprawdzasz pojedynczą transakcję i od razu widzisz ryzyko, decyzję i wyjaśnienie. Dane są w dwóch kartach:
+**Transakcja** (kwota, godzina, kategoria sklepu) i **Historia karty** (średnia kwota transakcji, wydatki
+w ostatnich 24 h, czas od poprzedniej transakcji). Karta **Ocena modelu** pokazuje ryzyko i decyzję, a pasek
+pod nimi ma tę samą skalę i te same progi co suwak w Panelu kompromisu.
 
-**Spróbuj po kolei:**
+**Gotowe przykłady** nad formularzem wypełniają go jednym kliknięciem, po jednym na każdą decyzję. Na start
+wybrany jest pierwszy:
 
-| Zmiana | Ryzyko | Decyzja |
-|---|---|---|
-| Kwota 3 000 zł, godzina 23:00, kategoria „Zakupy online”, w historii karty wydatki w 24 h: 4 000 zł | 62,5% | Blokada |
-| To samo, ale godzina 14:00 | 23,7% | Weryfikacja |
-| Z powrotem 23:00, ale wydatki w 24 h: 800 zł | 1,6% | Przepuść |
+| Przykład | Dane | Ryzyko | Decyzja |
+|---|---|---|---|
+| Typowe zakupy | 200 zł o 14:00 w sklepie spożywczym; średnia karty 250 zł, wydatki w 24 h 800 zł, 4 h od poprzedniej transakcji | 0,0% | Przepuść |
+| Zakupy online w dzień | 3 000 zł o 14:00, zakupy online, wydatki w 24 h 4 000 zł (reszta jak wyżej) | 23,7% | Weryfikacja |
+| Zakupy online w nocy | to samo, ale o 23:00 | 62,5% | Blokada |
 
-Wniosek: model najmocniej reaguje na serię wydatków w krótkim czasie i na porę nocną, a nie na samą
-wysoką kwotę. Tak wyglądają oszustwa w tych danych.
+**Spróbuj:** wybierz „Zakupy online w nocy” i zmień wydatki w 24 h na 800 zł. Ryzyko spada do 1,6%
+i transakcja przechodzi. Model najmocniej reaguje na serię wydatków w krótkim czasie i na porę nocną, a nie
+na samą wysoką kwotę. Tak wyglądają oszustwa w tych danych.
 
-**Ograniczenie modelu:** ustaw kategorię „Spożywcze w sklepie”, godzinę 23:00 i wydatki w 24 h 4 000 zł.
-Przy kwocie 1 500 zł ryzyko wynosi 100%, a przy 20 000 zł tylko 80,7%. W danych uczących nie było oszustw
-powyżej ok. 5 400 zł, więc model nie wie, że bardzo duża kwota też może być podejrzana. Model zna tylko sytuacje,
-które widział w danych.
+**Ograniczenie modelu:** kwota w formularzu może wynosić najwyżej 5 401 zł, bo tyle ma największe oszustwo
+w danych uczących. Powyżej tej kwoty w danych są tylko uczciwe transakcje, więc model nie uznaje bardzo dużych
+kwot za bardziej podejrzane. Na przykład przy zakupach spożywczych o 23:00 i wydatkach w 24 h 4 000 zł ryzyko
+dla 1 500 zł wynosi 100%, a dla 20 000 zł tylko 80,7% ([wyniki](../results/summary.md)). Model zna tylko
+sytuacje, które widział w danych.
 
 ## Słowniczek
 
