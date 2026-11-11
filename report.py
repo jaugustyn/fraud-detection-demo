@@ -12,18 +12,21 @@ import pandas as pd
 import xgboost as xgb
 
 from src.config import (
-    CHECK_EXAMPLES, DEFAULT_BLOCK_COST, DEFAULT_THRESHOLDS, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY, META_PATH,
-    MODEL_PATH, RESULTS_DIR, RISK_STEPS, SCORED_PATH, USD_PLN_SOURCE,
+    BLOCK_COST, CHECK_EXAMPLES, DEFAULT_THRESHOLDS, META_PATH, MODEL_PATH, RESULTS_DIR, RISK_STEPS, SCORED_PATH,
+    USD_PLN_SOURCE, VERIFY_COST, VERIFY_EFFICACY,
 )
 from src.evaluation import (
-    BLOCK, PASS, VERIFY, Costs, alarm_curve, compare_at_rules_false_alarms, comparison_table, decide, evaluate,
-    sensitive_variants_table,
+    BLOCK, MODELS, PASS, VERIFY, alarm_curve, compare_at_rules_false_alarms, comparison_table, decide, evaluate,
+    flag_at_false_alarms,
 )
 from src.features import BASE_FEATURES, FEATURE_LABELS, transaction_input
 from src.formatting import BLUE, GRAY, GRID, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
 from src.rules import RULE_LABELS
 
-MODELS = {"XGBoost": "score_xgb", "Regresja logistyczna": "score_lr"}
+SENSITIVE_VARIANTS = {
+    "Bez płci i wieku (używany w aplikacji)": "score_xgb",
+    "Z płcią i wiekiem": "score_xgb_sensitive",
+}
 
 
 def md_table(df: pd.DataFrame) -> str:
@@ -43,7 +46,7 @@ def style(ax: plt.Axes) -> None:
 def comparison_chart(df: pd.DataFrame, y: np.ndarray, false_alarms: int, rules_detected: float) -> None:
     fig, ax = plt.subplots(figsize=(9, 5.5), dpi=150)
     for (label, column), color in zip(MODELS.items(), [BLUE, ORANGE]):
-        curve = alarm_curve(y, df[column].to_numpy(), max_per_1000=15)
+        curve = alarm_curve(y, df[column].to_numpy())
         ax.plot(curve["false_per_1000"], curve["detected"], color=color, linewidth=2, label=label)
     x = false_alarms / len(df) * 1000
     ax.scatter([x], [rules_detected], s=70, color=INK, zorder=3, label="Proste reguły")
@@ -95,15 +98,28 @@ def cost_chart(costs_per_1000: dict[str, float]) -> None:
     plt.close(fig)
 
 
-def cheapest_thresholds(y: np.ndarray, amount: np.ndarray, scores: np.ndarray, costs: Costs) -> tuple[float, float, float]:
-    """The cheapest pair of slider thresholds (in percent) under the given cost assumptions."""
+def cheapest_thresholds(y: np.ndarray, amount: np.ndarray, scores: np.ndarray) -> tuple[float, float, float]:
+    """The cheapest pair of slider thresholds (in percent) under our cost assumptions."""
     pairs = [(verify, block) for verify in RISK_STEPS for block in RISK_STEPS if verify <= block]
-    cost = {
-        pair: evaluate(y, amount, decide(scores, pair[0] / 100, pair[1] / 100), costs).cost_per_1000
-        for pair in pairs
-    }
+    cost = {pair: evaluate(y, amount, decide(scores, pair[0] / 100, pair[1] / 100)).cost_per_1000 for pair in pairs}
     best = min(cost, key=cost.get)
     return best[0], best[1], cost[best]
+
+
+def sensitive_variants_table(df: pd.DataFrame, false_alarms: int) -> pd.DataFrame:
+    """Share of fraud detected by XGBoost with and without gender and age, at two limits of honest
+    transactions blocked: as many as the rules block, and a strict one of 1 per 1000 transactions."""
+    y = df["is_fraud"].to_numpy(bool)
+    strict = round(len(df) / 1000)
+
+    def detected(column: str, limit: int) -> str:
+        return fmt_pct(np.sum(flag_at_false_alarms(y, df[column].to_numpy(), limit) & y) / y.sum(), 1)
+
+    return pd.DataFrame({
+        "Wariant XGBoost": list(SENSITIVE_VARIANTS),
+        f"Limit {fmt_int(false_alarms)} blokad (jak reguły)": [detected(c, false_alarms) for c in SENSITIVE_VARIANTS.values()],
+        f"Limit {fmt_int(strict)} blokad (1 na 1000)": [detected(c, strict) for c in SENSITIVE_VARIANTS.values()],
+    })
 
 
 def night_grocery_risk(booster: xgb.Booster, amount: float) -> float:
@@ -120,9 +136,8 @@ def main() -> None:
     meta = json.loads(META_PATH.read_text(encoding="utf-8"))
     y = df["is_fraud"].to_numpy(bool)
     amount = df["amount"].to_numpy()
-    costs = Costs(DEFAULT_BLOCK_COST, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY)
 
-    false_alarms, comparison = compare_at_rules_false_alarms(df, MODELS, costs)
+    false_alarms, comparison = compare_at_rules_false_alarms(df)
     rules_detected = comparison.loc[comparison["Metoda"] == "Proste reguły", "Wykryte oszustwa"].item()
     comparison_chart(df, y, false_alarms, rules_detected)
     booster = xgb.Booster(model_file=str(MODEL_PATH))
@@ -137,10 +152,10 @@ def main() -> None:
 
     scores = df["score_xgb"].to_numpy()
     verify_from, block_from = DEFAULT_THRESHOLDS
-    panel = evaluate(y, amount, decide(scores, verify_from / 100, block_from / 100), costs)
-    no_system = evaluate(y, amount, np.full(len(df), PASS), costs)
-    rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS), costs)
-    best_verify, best_block, best_cost = cheapest_thresholds(y, amount, scores, costs)
+    panel = evaluate(y, amount, decide(scores, verify_from / 100, block_from / 100))
+    no_system = evaluate(y, amount, np.full(len(df), PASS))
+    rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS))
+    best_verify, best_block, best_cost = cheapest_thresholds(y, amount, scores)
     cost_chart({
         "Bez systemu": no_system.cost_per_1000,
         "Proste reguły (blokada)": rules.cost_per_1000,
@@ -190,7 +205,7 @@ Progi reguł to okrągłe kwoty dobrane na danych uczących.
 ## Porównanie metod przy tej samej liczbie blokad
 
 Każda metoda blokuje {fmt_int(false_alarms)} uczciwych transakcji, tyle co proste reguły
-(wykres: `method_comparison.png`). Koszt: przepuszczone oszustwa plus {fmt_pln(DEFAULT_BLOCK_COST)} za każdą
+(wykres: `method_comparison.png`). Koszt: przepuszczone oszustwa plus {fmt_pln(BLOCK_COST)} za każdą
 zablokowaną uczciwą transakcję.
 
 {md_table(comparison_table(comparison))}
@@ -207,10 +222,10 @@ Odsetek wykrytych oszustw przy dwóch limitach fałszywych blokad (zablokowanych
 Płeć i wiek poprawiają wynik, najbardziej przy małej liczbie blokad. W aplikacji używamy wariantu bez nich,
 bo decyzja o zablokowaniu karty nie powinna zależeć od płci ani wieku klienta.
 
-## Panel kompromisu przy domyślnych założeniach
+## Panel kompromisu przy domyślnych progach
 
-Wykres: `cost_comparison.png`. Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji {fmt_pln(DEFAULT_BLOCK_COST)},
-jedna weryfikacja {fmt_pln(DEFAULT_VERIFY_COST)}, weryfikacja zatrzymuje {fmt_pct(DEFAULT_VERIFY_EFFICACY)} oszustw,
+Wykres: `cost_comparison.png`. Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji {fmt_pln(BLOCK_COST)},
+jedna weryfikacja {fmt_pln(VERIFY_COST)}, weryfikacja zatrzymuje {fmt_pct(VERIFY_EFFICACY)} oszustw,
 przepuszczone oszustwo kosztuje tyle, ile jego kwota.
 
 | Wariant | Koszt na 1000 transakcji |

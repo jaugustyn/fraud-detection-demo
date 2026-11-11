@@ -1,4 +1,4 @@
-"""Strażnik Płatności – Streamlit entry point: page navigation and the decision settings shared by all pages.
+"""Strażnik Płatności – Streamlit entry point: page navigation and the decision thresholds shared by all pages.
 
 Run: uv run python -m streamlit run app.py
 """
@@ -6,8 +6,7 @@ Run: uv run python -m streamlit run app.py
 import streamlit as st
 
 from src.app_data import Settings
-from src.config import DEFAULT_BLOCK_COST, DEFAULT_THRESHOLDS, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY, SCORED_PATH
-from src.evaluation import Costs
+from src.config import DEFAULT_THRESHOLDS, SCORED_PATH
 
 st.set_page_config(page_title="Strażnik Płatności", page_icon=":material/shield:", layout="wide")
 
@@ -22,9 +21,7 @@ page = st.navigation([
     st.Page("views/check.py", title="Sprawdź transakcję", icon=":material/fact_check:"),
 ])
 
-# The thresholds slider is on the trade-off panel and keeps its value across pages; the costs are fixed assumptions.
+# The thresholds slider is on the trade-off panel and keeps its value across pages.
 verify_from, block_from = st.session_state.get("thresholds", DEFAULT_THRESHOLDS)
-st.session_state.settings = Settings(
-    verify_from / 100, block_from / 100, Costs(DEFAULT_BLOCK_COST, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY)
-)
+st.session_state.settings = Settings(verify_from / 100, block_from / 100)
 page.run()

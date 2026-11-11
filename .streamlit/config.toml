@@ -1,4 +1,4 @@
-# Colors and fonts match the product vision deck: navy sidebar, blue accent. Chart colors: src/formatting.py.
+# Product colors and fonts: navy sidebar, blue accent. Chart colors: src/formatting.py.
 [theme]
 base = "light"
 primaryColor = "#1F5FBF"

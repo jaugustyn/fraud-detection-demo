@@ -6,24 +6,39 @@ import pandas as pd
 import streamlit as st
 
 from src.app_data import load_meta, load_scored, readable, show_thresholds
-from src.config import DEFAULT_THRESHOLDS, RISK_STEPS, USD_PLN_SOURCE
+from src.config import BLOCK_COST, DEFAULT_THRESHOLDS, RISK_STEPS, USD_PLN_SOURCE, VERIFY_COST, VERIFY_EFFICACY
 from src.evaluation import BLOCK, DECISION_LABELS, PASS, VERIFY, Outcome, decide, evaluate
 from src.formatting import BLUE, GRAY, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
 
 COST_PARTS = {"Oszustwa, które przeszły": ORANGE, "Zablokowane uczciwe transakcje": BLUE, "Weryfikacje": GRAY}
 COST_PART_SHORT = ["oszustwa", "blokady", "weryfikacje"]  # in the bar labels, same order
 
+
+def cost_parts(outcome: Outcome) -> list[float]:
+    """Cost per 1000 transactions split by cause, in the order of COST_PARTS."""
+    fees = VERIFY_COST * (outcome.fraud[VERIFY] + outcome.honest[VERIFY])
+    per_1000 = 1000 / outcome.n
+    # Verified fraud that got through is a loss like passed fraud, so it moves from the verification cost.
+    return [(outcome.cost[PASS] + outcome.cost[VERIFY] - fees) * per_1000, outcome.cost[BLOCK] * per_1000,
+            fees * per_1000]
+
+
+def total_label(outcome: Outcome) -> str:
+    """'415 zł: oszustwa 371 zł + blokady 36 zł + weryfikacje 8 zł'; the small parts are hard to see on the bar."""
+    shown = [f"{name} {fmt_pln(value)}" for name, value in zip(COST_PART_SHORT, cost_parts(outcome)) if value >= 0.5]
+    total = fmt_pln(outcome.cost_per_1000)
+    return f"{total}: {' + '.join(shown)}" if len(shown) > 1 else total
+
+
 settings = st.session_state.settings
-costs = settings.costs
 df = load_scored()
 test = load_meta()["test"]
 y = df["is_fraud"].to_numpy(bool)
 amount = df["amount"].to_numpy()
 
-decisions = decide(df["score_xgb"].to_numpy(), settings.verify_from, settings.block_from)
-current = evaluate(y, amount, decisions, costs)
-no_system = evaluate(y, amount, np.full(len(df), PASS), costs)
-rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS), costs)
+current = evaluate(y, amount, decide(df["score_xgb"].to_numpy(), settings.verify_from, settings.block_from))
+no_system = evaluate(y, amount, np.full(len(df), PASS))
+rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS))
 
 period = f"{fmt_date(test['from'])}–{fmt_date(test['to'])}"
 st.title("Panel kompromisu")
@@ -35,9 +50,9 @@ with st.container(border=True):
         "Progi decyzji: od jakiego ryzyka oszustwa transakcję weryfikujemy (SMS, 3D Secure), a od jakiego blokujemy",
         options=RISK_STEPS, value=DEFAULT_THRESHOLDS, format_func=fmt_step, key="thresholds", persist_state="session",
     )
-    show_thresholds(settings, where_to_change=False)
+    show_thresholds(settings)
 
-# Short notes under the numbers instead of "?" tooltips: on a projector nobody can hover them.
+# Short notes under the numbers instead of "?" tooltips: nobody hovers them while the app is being shown.
 tiles = [
     ("Wykryte oszustwa", fmt_pct(current.detected_share), None,
      f"{fmt_int(current.detected)} z {fmt_int(sum(current.fraud.values()))} oszustw zweryfikowanych lub zablokowanych"),
@@ -52,15 +67,6 @@ for column, (label, value, delta, note) in zip(st.columns(4), tiles):
         st.metric(label, value, delta=delta, delta_color="inverse")
         st.caption(note)
 
-def cost_parts(outcome: Outcome) -> list[float]:
-    """Cost per 1000 transactions split by cause, in the order of COST_PARTS."""
-    fees = costs.verify * (outcome.fraud[VERIFY] + outcome.honest[VERIFY])
-    per_1000 = 1000 / outcome.n
-    # Verified fraud that got through is a loss like passed fraud, so it moves from the verification cost.
-    return [(outcome.cost[PASS] + outcome.cost[VERIFY] - fees) * per_1000, outcome.cost[BLOCK] * per_1000,
-            fees * per_1000]
-
-
 st.subheader("Z czego składa się koszt na 1000 transakcji")
 st.caption("Średnio na każde 1000 płatności: straty z oszustw, które przeszły, plus koszt zablokowanych uczciwych "
            "transakcji i weryfikacji.")
@@ -71,15 +77,6 @@ parts = pd.DataFrame([
     for i, (part, value) in enumerate(zip(COST_PARTS, cost_parts(outcome)))
 ])
 parts["Etykieta"] = parts["Koszt"].map(fmt_pln)
-
-
-def total_label(outcome: Outcome) -> str:
-    """'415 zł: oszustwa 371 zł + blokady 36 zł + weryfikacje 8 zł'; the small parts are hard to see on the bar."""
-    shown = [f"{name} {fmt_pln(value)}" for name, value in zip(COST_PART_SHORT, cost_parts(outcome)) if value >= 0.5]
-    total = fmt_pln(outcome.cost_per_1000)
-    return f"{total}: {' + '.join(shown)}" if len(shown) > 1 else total
-
-
 totals = pd.DataFrame({
     "Wariant": list(variants),
     "Koszt": [o.cost_per_1000 for o in variants.values()],
@@ -100,8 +97,8 @@ labels = alt.Chart(totals).mark_text(align="left", dx=6, fontSize=14, fontWeight
 st.altair_chart(readable((bars + labels).properties(height=190)), width="stretch")
 st.caption(
     f"Nasze założenia, nie dane rynkowe: oszustwo, które przeszło, kosztuje tyle, ile jego kwota; zablokowana "
-    f"uczciwa transakcja {fmt_pln(costs.block)} (infolinia, utracona sprzedaż); weryfikacja {fmt_pln(costs.verify)} "
-    f"i zatrzymuje {fmt_pct(costs.efficacy)} oszustw. Kwoty w zł: {USD_PLN_SOURCE}."
+    f"uczciwa transakcja {fmt_pln(BLOCK_COST)} (infolinia, utracona sprzedaż); weryfikacja {fmt_pln(VERIFY_COST)} "
+    f"i zatrzymuje {fmt_pct(VERIFY_EFFICACY)} oszustw. Kwoty w zł: {USD_PLN_SOURCE}."
 )
 
 st.subheader("Co dzieje się z transakcjami")

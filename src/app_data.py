@@ -10,7 +10,7 @@ import streamlit as st
 import xgboost as xgb
 
 from src.config import META_PATH, MODEL_PATH, RISK_STEPS, SCORED_PATH
-from src.evaluation import BLOCK, DECISION_LABELS, PASS, VERIFY, Costs, decide
+from src.evaluation import BLOCK, DECISION_LABELS, PASS, VERIFY, decide
 from src.features import BASE_FEATURES, CATEGORY_LABELS, FEATURE_LABELS
 from src.formatting import BLUE, DECISION_COLORS, GRID, INK, ORANGE, fmt_hours, fmt_pct, fmt_pln, fmt_step
 
@@ -20,9 +20,10 @@ DECISION_BADGES = {PASS: "green", VERIFY: "yellow", BLOCK: "red"}  # Streamlit b
 
 @dataclass(frozen=True)
 class Settings:
+    """The decision thresholds set on the trade-off panel."""
+
     verify_from: float  # risk score (0-1) from which a transaction is verified
     block_from: float  # risk score (0-1) from which a transaction is blocked
-    costs: Costs
 
     def decide(self, risk: float) -> int:
         return decide(np.array([risk]), self.verify_from, self.block_from)[0]
@@ -78,7 +79,7 @@ def explain(row: pd.Series) -> pd.DataFrame:
 
 
 def readable(chart: alt.TopLevelMixin) -> alt.TopLevelMixin:
-    """Larger, darker chart text than the default, so it reads well on a projector."""
+    """Larger, darker chart text than the default, so it reads well on a big screen."""
     return (chart.configure_axis(labelFontSize=13, titleFontSize=13, labelColor=INK, titleColor=INK)
             .configure_legend(labelFontSize=13, labelColor=INK))
 
@@ -88,15 +89,12 @@ def slider_position(risk: float) -> float:
     return float(np.interp(risk, np.array(RISK_STEPS) / 100, np.linspace(0, 1, len(RISK_STEPS))))
 
 
-def show_thresholds(settings: Settings, where_to_change: bool = True) -> None:
+def show_thresholds(settings: Settings) -> None:
     """The three decision zones of the current thresholds, as colored badges."""
     verify, block = fmt_step(settings.verify_from * 100), fmt_step(settings.block_from * 100)
-    text = (f"{_badge(PASS, f'Przepuść poniżej {verify}')} "
-            f"{_badge(VERIFY, f'Weryfikacja {verify}–{block}')} "
-            f"{_badge(BLOCK, f'Blokada od {block}')}")
-    if where_to_change:
-        text += " :gray[Progi zmienisz w Panelu kompromisu.]"
-    st.markdown(text)
+    st.markdown(f"{_badge(PASS, f'Przepuść poniżej {verify}')} "
+                f"{_badge(VERIFY, f'Weryfikacja {verify}–{block}')} "
+                f"{_badge(BLOCK, f'Blokada od {block}')}")
 
 
 def _badge(decision: int, text: str) -> str:

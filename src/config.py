@@ -1,4 +1,4 @@
-"""Shared settings: paths, currency conversion, default cost assumptions and example transactions."""
+"""Shared settings: paths, currency conversion, decision thresholds, cost assumptions and example transactions."""
 
 from datetime import time
 from pathlib import Path
@@ -20,10 +20,10 @@ USD_PLN_SOURCE = "kurs średni NBP z 23.10.2026 (tabela 207/A/NBP/2026): 1 USD =
 RISK_STEPS = [0, 0.5, 1, 2, 5, 10, 20, 30, 50, 70, 90, 100]
 DEFAULT_THRESHOLDS = (10, 50)  # verify from, block from
 
-# Cost assumptions, editable in the app. They are our assumptions, not market statistics.
-DEFAULT_BLOCK_COST = 100.0  # PLN per blocked honest transaction (hotline call, lost sale, annoyed customer)
-DEFAULT_VERIFY_COST = 5.0  # PLN per verification (SMS / 3-D Secure, customer inconvenience)
-DEFAULT_VERIFY_EFFICACY = 0.9  # share of fraud attempts stopped by verification
+# Cost assumptions: ours, not market statistics. A passed fraud costs its amount.
+BLOCK_COST = 100.0  # PLN per blocked honest transaction (hotline call, lost sale, annoyed customer)
+VERIFY_COST = 5.0  # PLN per verification (SMS / 3-D Secure, customer inconvenience)
+VERIFY_EFFICACY = 0.9  # share of fraud attempts stopped by verification; below 1, or blocking never pays off
 
 # Ready-made inputs of the check page, one per decision at the default thresholds; the first one is shown on
 # start. "Typowe zakupy" uses rounded medians of honest transactions in the test data.

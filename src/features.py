@@ -50,8 +50,6 @@ FEATURE_LABELS = {
     "log_spent_24h": "Wydatki karty w ostatnich 24 h",
     "log_hours_since_prev": "Czas od poprzedniej transakcji karty",
     **{c: "Kategoria sklepu" for c in CATEGORY_COLUMNS},
-    "age": "Wiek klienta",
-    "is_male": "Płeć klienta",
 }
 
 

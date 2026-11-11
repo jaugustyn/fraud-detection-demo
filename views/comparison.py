@@ -5,13 +5,10 @@ import pandas as pd
 import streamlit as st
 
 from src.app_data import load_scored, readable
-from src.evaluation import alarm_curve, compare_at_rules_false_alarms, comparison_table
+from src.evaluation import MODELS, alarm_curve, compare_at_rules_false_alarms, comparison_table
 from src.formatting import BLUE, INK, ORANGE, fmt_int, fmt_pct
 from src.rules import RULE_LABELS
 
-MODELS = {"XGBoost": "score_xgb", "Regresja logistyczna": "score_lr"}
-
-settings = st.session_state.settings
 df = load_scored()
 y = df["is_fraud"].to_numpy(bool)
 right_aligned = st.column_config.TextColumn(alignment="right")
@@ -19,7 +16,7 @@ right_aligned = st.column_config.TextColumn(alignment="right")
 st.title("Porównanie metod")
 st.caption("Te same transakcje testowe dla wszystkich metod (druga połowa 2020, modele nie widziały ich podczas nauki).")
 
-false_alarms, comparison = compare_at_rules_false_alarms(df, MODELS, settings.costs)
+false_alarms, comparison = compare_at_rules_false_alarms(df)
 detected = comparison.set_index("Metoda")["Wykryte oszustwa"]
 rules = "; ".join(label[0].lower() + label[1:] for label in RULE_LABELS.values())
 st.subheader("Przy tej samej liczbie fałszywych blokad")
@@ -34,7 +31,7 @@ st.caption("Trafne alarmy: jaka część zablokowanych transakcji to oszustwa. K
 st.caption(f"Proste reguły: {rules}.")
 
 st.subheader("Wykryte oszustwa a fałszywe blokady")
-curves = pd.concat([alarm_curve(y, df[col].to_numpy(), max_per_1000=15).assign(Metoda=label)
+curves = pd.concat([alarm_curve(y, df[col].to_numpy()).assign(Metoda=label)
                     for label, col in MODELS.items()])
 rules_point = pd.DataFrame({
     "false_per_1000": [false_alarms / len(df) * 1000],

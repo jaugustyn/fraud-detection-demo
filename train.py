@@ -13,16 +13,12 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
-from src.config import (
-    ARTIFACTS_DIR, DATA_DIR, DEFAULT_BLOCK_COST, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY,
-    META_PATH, MODEL_PATH, SCORED_PATH,
-)
-from src.evaluation import Costs, compare_at_rules_false_alarms
+from src.config import ARTIFACTS_DIR, DATA_DIR, META_PATH, MODEL_PATH, SCORED_PATH
 from src.features import BASE_FEATURES, SENSITIVE_FEATURES, add_features, load_transactions
 from src.rules import rule_flags
 
 # Test-set columns kept for display; BASE_FEATURES are kept too, the app explains decisions from them.
-DISPLAY_COLUMNS = ["ts", "cc_num", "category", "amount", "is_fraud", "amount_ratio", "spent_24h", "hours_since_prev"]
+DISPLAY_COLUMNS = ["ts", "category", "amount", "is_fraud", "amount_ratio", "spent_24h", "hours_since_prev"]
 SCORE_COLUMNS = ["score_xgb", "score_xgb_sensitive", "score_lr"]
 
 
@@ -77,14 +73,8 @@ def main() -> None:
     }
     META_PATH.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
-    costs = Costs(DEFAULT_BLOCK_COST, DEFAULT_VERIFY_COST, DEFAULT_VERIFY_EFFICACY)
-    false_alarms, comparison = compare_at_rules_false_alarms(
-        scored, {"Regresja logistyczna": "score_lr", "XGBoost": "score_xgb"}, costs
-    )
     print(json.dumps(meta, indent=2))
-    print(f"\nPorównanie przy {false_alarms} zablokowanych uczciwych transakcjach (jak reguły):")
-    print(comparison.round(3).to_string(index=False))
-    print(f"\nGotowe w {time.time() - start:.0f} s. Wyniki w {ARTIFACTS_DIR}")
+    print(f"\nGotowe w {time.time() - start:.0f} s. Wyniki w {ARTIFACTS_DIR}. Tabele i wykresy: uv run python report.py")
 
 
 if __name__ == "__main__":

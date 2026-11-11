@@ -42,7 +42,7 @@ systemu i z prostymi regułami:
 | Proste reguły | 1 486 zł: oszustwa 764 zł + blokady 722 zł |
 | Strażnik Płatności | 415 zł: oszustwa 371 zł + blokady 36 zł + weryfikacje 8 zł |
 
-Reguły zamieniają część oszustw na zablokowanych uczciwych klientów, a model ogranicza jedno i drugie. Pod wykresem
+Reguły zamieniają część oszustw na zablokowane uczciwe transakcje, a model ogranicza jedno i drugie. Pod wykresem
 są założenia kosztowe: oszustwo, które przeszło, kosztuje tyle, ile jego kwota, zablokowana uczciwa transakcja
 100 zł, a weryfikacja 5 zł i zatrzymuje 90% oszustw. To nasze założenia, nie dane rynkowe. Tabela „Co dzieje się
 z transakcjami” pokazuje, ile oszustw i uczciwych transakcji dostaje każdą z trzech decyzji.

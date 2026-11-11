@@ -27,7 +27,7 @@ st.caption(f"{day:%d.%m.%Y}, dzień z największą liczbą oszustw w danych test
 col_view, col_thresholds = st.columns([1.2, 2.8], vertical_alignment="bottom")
 view = col_view.segmented_control("Pokaż", [HELD, MISTAKES], default=HELD, required=True)
 with col_thresholds:
-    show_thresholds(settings, where_to_change=False)
+    show_thresholds(settings)
 
 day_df = df[df["day"] == day].copy()
 day_df["decision"] = decide(day_df["score_xgb"].to_numpy(), settings.verify_from, settings.block_from)
