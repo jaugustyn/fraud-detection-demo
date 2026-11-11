@@ -12,7 +12,7 @@ wyjaśnia ją i pokazuje koszt kompromisu w złotówkach.
   na 1000 transakcji. Progi obowiązują też na ekranach Transakcje i Sprawdź transakcję.
 - **Porównanie metod** – proste reguły vs regresja logistyczna vs XGBoost przy tej samej liczbie
   fałszywych blokad.
-- **Transakcje** – transakcje z wybranego dnia: wstrzymane albo pomyłki modelu (przepuszczone oszustwa,
+- **Transakcje** – transakcje z dnia z największą liczbą oszustw: wstrzymane albo pomyłki modelu (przepuszczone oszustwa,
   fałszywe blokady). Dla wybranej: ryzyko, decyzja i które cechy podniosły lub obniżyły ryzyko (wartości SHAP
   z XGBoost).
 - **Sprawdź transakcję** – gotowy przykład albo ręcznie wpisana transakcja (kwota, godzina, kategoria,

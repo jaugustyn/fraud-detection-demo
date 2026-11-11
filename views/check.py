@@ -36,8 +36,6 @@ with col_transaction.container(border=True, height="stretch"):
     amount = st.number_input(
         f"Kwota (zł, maks. {fmt_int(max_amount)})", min_value=1.0, max_value=float(max_amount), step=50.0,
         format="%.0f", key="amount", on_change=clear_example,
-        help="Tyle wynosi największe oszustwo w danych uczących. Wyższych kwot model nie zna i nie uznaje ich "
-             "za bardziej podejrzane.",
     )
     time_of_day = st.time_input("Godzina", key="time_of_day", on_change=clear_example)
     category = st.selectbox("Kategoria sklepu", categories, format_func=CATEGORY_LABELS.get, key="category",
@@ -47,8 +45,8 @@ with col_card.container(border=True, height="stretch"):
     st.markdown("**Historia karty**")
     card_mean = st.number_input("Średnia kwota transakcji (zł)", min_value=1.0, step=50.0, format="%.0f",
                                 key="card_mean", on_change=clear_example)
-    spent_24h = st.number_input("Wydatki w ostatnich 24 h (zł)", min_value=0.0, step=100.0, format="%.0f",
-                                key="spent_24h", on_change=clear_example, help="Bez sprawdzanej transakcji.")
+    spent_24h = st.number_input("Wydatki w 24 h przed tą transakcją (zł)", min_value=0.0, step=100.0, format="%.0f",
+                                key="spent_24h", on_change=clear_example)
     hours_since_prev = st.number_input("Godziny od poprzedniej transakcji", min_value=0.0,
                                        max_value=float(MAX_HOURS_SINCE_PREV), step=1.0, format="%.1f",
                                        key="hours_since_prev", on_change=clear_example)

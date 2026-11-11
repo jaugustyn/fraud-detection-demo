@@ -31,12 +31,21 @@ Cztery kafelki pod suwakiem odpowiadają na pytanie „co dają moje progi?”:
 | Wykryte oszustwa | Odsetek oszustw skierowanych do weryfikacji lub zablokowanych | 93% |
 | Fałszywe blokady | Uczciwe transakcje zablokowane przez system | 199 |
 | Zbędne weryfikacje | Uczciwe transakcje, które klient musiał potwierdzić | 747 |
-| Koszt na 1000 transakcji | Przepuszczone oszustwa + blokady + weryfikacje | 415 zł (−95% wobec braku systemu) |
+| Koszt na 1000 transakcji | Oszustwa, które przeszły + blokady + weryfikacje, średnio na 1000 płatności | 415 zł (−95% wobec braku systemu) |
 
-Wykres pod kafelkami porównuje koszt z dwoma punktami odniesienia: brakiem systemu (8 004 zł) i prostymi
-regułami (1 486 zł). Pod wykresem są założenia kosztowe: przepuszczone oszustwo kosztuje tyle, ile jego kwota,
-weryfikacja 5 zł i zatrzymuje 90% oszustw, zablokowana uczciwa transakcja 100 zł. To nasze założenia, nie dane
-rynkowe. Rozwijana sekcja „Szczegóły” rozbija wynik na trzy decyzje.
+Wykres **Z czego składa się koszt na 1000 transakcji** dzieli ten koszt na trzy części i porównuje go z brakiem
+systemu i z prostymi regułami:
+
+| Wariant | Koszt na 1000 transakcji |
+|---|---|
+| Bez systemu | 8 004 zł – same oszustwa |
+| Proste reguły | 1 486 zł: oszustwa 764 zł + blokady 722 zł |
+| Strażnik Płatności | 415 zł: oszustwa 371 zł + blokady 36 zł + weryfikacje 8 zł |
+
+Reguły zamieniają część oszustw na zablokowanych uczciwych klientów, a model ogranicza jedno i drugie. Pod wykresem
+są założenia kosztowe: oszustwo, które przeszło, kosztuje tyle, ile jego kwota, zablokowana uczciwa transakcja
+100 zł, a weryfikacja 5 zł i zatrzymuje 90% oszustw. To nasze założenia, nie dane rynkowe. Tabela „Co dzieje się
+z transakcjami” pokazuje, ile oszustw i uczciwych transakcji dostaje każdą z trzech decyzji.
 
 **Spróbuj:**
 
@@ -67,8 +76,8 @@ Ten ekran nie zależy od progów z Panelu kompromisu: porównanie zawsze dotyczy
 
 ![Transakcje](img/transactions.png)
 
-Lista transakcji z jednego dnia, od najbardziej ryzykownych. Domyślnie pokazuje 4 października 2020, czyli dzień
-z największą liczbą oszustw (40 na 2 788 transakcji). Przełącznik **Pokaż** ma dwie opcje:
+Lista transakcji z jednego dnia, od najbardziej ryzykownych: 4 października 2020, czyli dnia z największą liczbą
+oszustw w danych testowych (40 na 2 788 transakcji). Przełącznik **Pokaż** ma dwie opcje:
 
 - **Wstrzymane**: transakcje skierowane do weryfikacji lub zablokowane (tego dnia 39),
 - **Pomyłki modelu**: przepuszczone oszustwa i fałszywe blokady, czyli dwa rodzaje błędów każdego systemu.
@@ -83,10 +92,9 @@ prawdziwa etykieta ze zbioru testowego. W banku nikt by jej nie znał, tutaj poz
    Najmocniej podniosły ryzyko kwota, kategoria sklepu i wydatki karty w ostatnich 24 h (7 308 zł).
 2. Przełącz na „Pomyłki modelu”. Tego dnia model przepuścił dwa oszustwa, oba z ryzykiem ok. 4%: 32 zł
    w sklepie o 15:45 i 423 zł w restauracji o 5:34. W obu ryzyko obniżyły kwota i godzina, bo żadna
-   z tych transakcji nie była nocna. Fałszywych blokad tego dnia nie ma, najwięcej jest 14 grudnia 2020 (11).
-   Żaden model nie łapie wszystkiego.
+   z tych transakcji nie była nocna. Fałszywych blokad tego dnia nie ma. Żaden model nie łapie wszystkiego.
 3. Na Panelu kompromisu ustaw próg weryfikacji na 2% i wróć tutaj. Oba oszustwa trafiają teraz do weryfikacji,
-   więc znikają z listy pomyłek. W całych danych wykrywamy wtedy 96,7% oszustw zamiast 93,2%, ale zbędnych
+   więc lista pomyłek jest pusta. W całych danych wykrywamy wtedy 96,7% oszustw zamiast 93,2%, ale zbędnych
    weryfikacji jest 2 388 zamiast 747. Znów kompromis.
 
 ## 4. Sprawdź transakcję

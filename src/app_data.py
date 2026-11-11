@@ -15,6 +15,7 @@ from src.features import BASE_FEATURES, CATEGORY_LABELS, FEATURE_LABELS
 from src.formatting import BLUE, DECISION_COLORS, GRID, INK, ORANGE, fmt_hours, fmt_pct, fmt_pln, fmt_step
 
 DECISION_ICONS = {PASS: ":material/check_circle:", VERIFY: ":material/sms:", BLOCK: ":material/block:"}
+DECISION_BADGES = {PASS: "green", VERIFY: "yellow", BLOCK: "red"}  # Streamlit badge colors of the three zones
 
 
 @dataclass(frozen=True)
@@ -90,20 +91,22 @@ def slider_position(risk: float) -> float:
 def show_thresholds(settings: Settings, where_to_change: bool = True) -> None:
     """The three decision zones of the current thresholds, as colored badges."""
     verify, block = fmt_step(settings.verify_from * 100), fmt_step(settings.block_from * 100)
-    text = (f":green-badge[{DECISION_ICONS[PASS]} Przepuść poniżej {verify}] "
-            f":yellow-badge[{DECISION_ICONS[VERIFY]} Weryfikacja {verify}–{block}] "
-            f":red-badge[{DECISION_ICONS[BLOCK]} Blokada od {block}]")
+    text = (f"{_badge(PASS, f'Przepuść poniżej {verify}')} "
+            f"{_badge(VERIFY, f'Weryfikacja {verify}–{block}')} "
+            f"{_badge(BLOCK, f'Blokada od {block}')}")
     if where_to_change:
         text += " :gray[Progi zmienisz w Panelu kompromisu.]"
     st.markdown(text)
 
 
+def _badge(decision: int, text: str) -> str:
+    return f":{DECISION_BADGES[decision]}-badge[{DECISION_ICONS[decision]} {text}]"
+
+
 def show_assessment(risk: float, settings: Settings) -> None:
-    """Risk of one transaction, the proposed decision in its color and the risk on the slider's scale."""
+    """Risk of one transaction and the proposed decision, in plain text, plus the risk on the slider's scale."""
     decision = settings.decide(risk)
-    st.metric("Ryzyko oszustwa", fmt_pct(risk, 1))
-    alert = {PASS: st.success, VERIFY: st.warning, BLOCK: st.error}[decision]
-    alert(f"**{DECISION_LABELS[decision]}**", icon=DECISION_ICONS[decision])
+    st.markdown(f"Ryzyko oszustwa: **{fmt_pct(risk, 1)}**  \nDecyzja: {_badge(decision, DECISION_LABELS[decision])}")
     _risk_meter(risk, decision, settings)
 
 
@@ -136,9 +139,11 @@ def show_explanation(row: pd.Series) -> None:
     chart = alt.Chart(reasons).mark_bar(size=20, cornerRadius=4).encode(
         x=alt.X("Wpływ:Q", title="← obniża ryzyko · podnosi ryzyko →", axis=alt.Axis(labels=False, ticks=False)),
         y=alt.Y("Etykieta:N", sort=None, title=None, axis=alt.Axis(labelLimit=420)),
-        color=alt.Color("Kierunek:N", title=None, legend=alt.Legend(orient="top"),
+        # The caption below names the colors; a chart legend would add another font size and a blank band.
+        color=alt.Color("Kierunek:N", legend=None,
                         scale=alt.Scale(domain=["Podnosi ryzyko", "Obniża ryzyko"], range=[ORANGE, BLUE])),
         tooltip=["Cecha:N", "Wartość:N", "Kierunek:N"],
     )
-    st.altair_chart(readable(chart.properties(height=260)), width="stretch")
-    st.caption("Długość słupka to siła wpływu cechy (wartości SHAP z modelu XGBoost).")
+    st.altair_chart(readable(chart.properties(height=alt.Step(28))), width="stretch")
+    st.caption("Pomarańczowe słupki podnoszą ryzyko, niebieskie je obniżają. Długość słupka to siła wpływu cechy "
+               "(wartości SHAP z modelu XGBoost).")

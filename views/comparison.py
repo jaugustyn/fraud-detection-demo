@@ -28,15 +28,9 @@ st.markdown(
     f"XGBoost wykrywa wtedy **{fmt_pct(detected['XGBoost'])}** oszustw, regresja logistyczna "
     f"**{fmt_pct(detected['Regresja logistyczna'])}**, a reguły **{fmt_pct(detected['Proste reguły'])}**."
 )
-st.dataframe(comparison_table(comparison), hide_index=True, width="stretch", column_config={
-    "Wykryte oszustwa": right_aligned,
-    "Trafne alarmy (precyzja)": st.column_config.TextColumn(
-        alignment="right", help="Jaka część zablokowanych transakcji to faktycznie oszustwa."),
-    "Koszt na 1000 transakcji": st.column_config.TextColumn(
-        alignment="right",
-        help="Jak w panelu, ale bez weryfikacji: oznaczona transakcja jest blokowana. Regresja wykrywa więcej "
-             "oszustw niż reguły, a kosztuje więcej, bo gubi duże kwoty."),
-})
+table = comparison_table(comparison)
+st.dataframe(table, hide_index=True, width="stretch", column_config={c: right_aligned for c in table.columns[1:]})
+st.caption("Trafne alarmy: jaka część zablokowanych transakcji to oszustwa. Koszt jak w panelu, ale bez weryfikacji.")
 st.caption(f"Proste reguły: {rules}.")
 
 st.subheader("Wykryte oszustwa a fałszywe blokady")
