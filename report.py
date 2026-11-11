@@ -222,7 +222,7 @@ Odsetek wykrytych oszustw przy dwóch limitach fałszywych blokad (zablokowanych
 Płeć i wiek poprawiają wynik, najbardziej przy małej liczbie blokad. W aplikacji używamy wariantu bez nich,
 bo decyzja o zablokowaniu karty nie powinna zależeć od płci ani wieku klienta.
 
-## Panel kompromisu przy domyślnych progach
+## Koszty przy domyślnych progach
 
 Wykres: `cost_comparison.png`. Założenia (nasze, nie dane rynkowe): blokada uczciwej transakcji {fmt_pln(BLOCK_COST)},
 jedna weryfikacja {fmt_pln(VERIFY_COST)}, weryfikacja zatrzymuje {fmt_pct(VERIFY_EFFICACY)} oszustw,

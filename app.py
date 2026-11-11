@@ -15,13 +15,13 @@ if not SCORED_PATH.exists():
     st.stop()
 
 page = st.navigation([
-    st.Page("views/panel.py", title="Panel kompromisu", icon=":material/tune:", default=True),
+    st.Page("views/panel.py", title="Progi i koszty", icon=":material/tune:", default=True),
     st.Page("views/comparison.py", title="Porównanie metod", icon=":material/compare_arrows:"),
     st.Page("views/transactions.py", title="Transakcje", icon=":material/receipt_long:"),
     st.Page("views/check.py", title="Sprawdź transakcję", icon=":material/fact_check:"),
 ])
 
-# The thresholds slider is on the trade-off panel and keeps its value across pages.
+# The thresholds slider is on the thresholds and costs page and keeps its value across pages.
 verify_from, block_from = st.session_state.get("thresholds", DEFAULT_THRESHOLDS)
 st.session_state.settings = Settings(verify_from / 100, block_from / 100)
 page.run()

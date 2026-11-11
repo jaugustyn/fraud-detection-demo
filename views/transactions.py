@@ -14,19 +14,16 @@ VIEW_NOTES = {
     HELD: "Transakcje skierowane do weryfikacji lub zablokowane, od najbardziej ryzykownych.",
     MISTAKES: "Przepuszczone oszustwa i fałszywe blokady, od najbardziej ryzykownych.",
 }
-ROW_HEIGHT = 35  # px per row of st.dataframe, used to fit the table to its rows
+ROW_HEIGHT = 40  # px per row of st.dataframe, set explicitly to fit the table to its rows
 
 settings = st.session_state.settings
 df = load_scored()
 day = df.loc[df["is_fraud"] == 1, "day"].value_counts().idxmax()
 
-st.title("Transakcje")
-st.caption(f"{day:%d.%m.%Y}, dzień z największą liczbą oszustw w danych testowych. Zaznacz wiersz, aby zobaczyć "
-           "wyjaśnienie decyzji (na start pokazujemy pierwszy).")
+st.title(f"Transakcje z {day:%d.%m.%Y}")
 
-col_view, col_thresholds = st.columns([1.2, 2.8], vertical_alignment="bottom")
-view = col_view.segmented_control("Pokaż", [HELD, MISTAKES], default=HELD, required=True)
-with col_thresholds:
+with st.container(horizontal=True, vertical_alignment="bottom"):
+    view = st.segmented_control("Pokaż", [HELD, MISTAKES], default=HELD, required=True)
     show_thresholds(settings)
 
 day_df = df[df["day"] == day].copy()
@@ -50,7 +47,7 @@ table = pd.DataFrame({
     "Oszustwo wg danych": np.where(day_df["is_fraud"] == 1, "Tak", "Nie"),
 })
 event = st.dataframe(
-    table, hide_index=True, width="stretch", height=ROW_HEIGHT * (min(len(table), 4) + 1) + 3,
+    table, hide_index=True, width="content", row_height=ROW_HEIGHT, height=ROW_HEIGHT * (min(len(table), 4) + 1) + 1,
     on_select="rerun", selection_mode="single-row",
     key=f"transactions-{view}-{settings.verify_from}-{settings.block_from}",
     column_config={
@@ -66,7 +63,7 @@ st.subheader("Wyjaśnienie decyzji")
 st.markdown(f"Wybrana transakcja: **{row['ts']:%H:%M} · {CATEGORY_LABELS[row['category']]} · "
             f"{fmt_pln(row['amount'])}**")
 
-left, right = st.columns([1, 3], gap="large")
+left, right = st.columns([1.2, 2.8], gap="medium")
 with left:
     st.markdown("**Ocena modelu**")
     show_assessment(row["score_xgb"], settings)

@@ -5,7 +5,7 @@
 Demo panelu analityka antyfraudowego. Model ocenia ryzyko oszustwa w każdej transakcji, proponuje decyzję
 (przepuść / dodatkowa weryfikacja / blokada), wyjaśnia ją i pokazuje, ile kosztuje wybrany kompromis.
 
-Ekrany: Panel kompromisu, Porównanie metod, Transakcje, Sprawdź transakcję. Jak z nich korzystać:
+Ekrany: Progi i koszty, Porównanie metod, Transakcje, Sprawdź transakcję. Jak z nich korzystać:
 [docs/tutorial.md](docs/tutorial.md). Wyniki modeli: [results/summary.md](results/summary.md).
 
 ## Uruchomienie

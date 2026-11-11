@@ -20,7 +20,7 @@ DECISION_BADGES = {PASS: "green", VERIFY: "yellow", BLOCK: "red"}  # Streamlit b
 
 @dataclass(frozen=True)
 class Settings:
-    """The decision thresholds set on the trade-off panel."""
+    """The decision thresholds set on the thresholds and costs page."""
 
     verify_from: float  # risk score (0-1) from which a transaction is verified
     block_from: float  # risk score (0-1) from which a transaction is blocked
@@ -80,8 +80,8 @@ def explain(row: pd.Series) -> pd.DataFrame:
 
 def readable(chart: alt.TopLevelMixin) -> alt.TopLevelMixin:
     """Larger, darker chart text than the default, so it reads well on a big screen."""
-    return (chart.configure_axis(labelFontSize=13, titleFontSize=13, labelColor=INK, titleColor=INK)
-            .configure_legend(labelFontSize=13, labelColor=INK))
+    return (chart.configure_axis(labelFontSize=15, titleFontSize=15, labelColor=INK, titleColor=INK)
+            .configure_legend(labelFontSize=15, labelColor=INK))
 
 
 def slider_position(risk: float) -> float:
@@ -123,7 +123,7 @@ def _risk_meter(risk: float, decision: int, settings: Settings) -> None:
         "label": [fmt_step(settings.verify_from * 100), fmt_step(settings.block_from * 100)],
     })
     ticks = alt.Chart(thresholds).mark_rule(color=INK, strokeWidth=2).encode(x=x, y=alt.value(2), y2=alt.value(26))
-    labels = alt.Chart(thresholds).mark_text(color=INK, fontSize=13, baseline="top").encode(
+    labels = alt.Chart(thresholds).mark_text(color=INK, fontSize=15, baseline="top").encode(
         x=x, y=alt.value(30), text="label:N")
     st.altair_chart((track + fill + ticks + labels).properties(height=48).configure_view(stroke=None), width="stretch")
 

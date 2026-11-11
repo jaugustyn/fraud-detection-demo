@@ -1,4 +1,4 @@
-"""Trade-off panel: the decision thresholds, what they catch, whom they stop and what it costs."""
+"""Thresholds and costs: the decision thresholds, what they catch, whom they stop and what it costs."""
 
 import altair as alt
 import numpy as np
@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from src.app_data import load_meta, load_scored, readable, show_thresholds
-from src.config import BLOCK_COST, DEFAULT_THRESHOLDS, RISK_STEPS, USD_PLN_SOURCE, VERIFY_COST, VERIFY_EFFICACY
+from src.config import DEFAULT_THRESHOLDS, RISK_STEPS, VERIFY_COST
 from src.evaluation import BLOCK, DECISION_LABELS, PASS, VERIFY, Outcome, decide, evaluate
 from src.formatting import BLUE, GRAY, INK, ORANGE, fmt_date, fmt_int, fmt_pct, fmt_pln, fmt_step
 
@@ -41,7 +41,7 @@ no_system = evaluate(y, amount, np.full(len(df), PASS))
 rules = evaluate(y, amount, np.where(df["rules_any"], BLOCK, PASS))
 
 period = f"{fmt_date(test['from'])}–{fmt_date(test['to'])}"
-st.title("Panel kompromisu")
+st.title("Progi i koszty")
 st.caption(f"{fmt_int(test['rows'])} transakcji testowych ({period}), w tym {fmt_int(test['fraud'])} oszustw.")
 
 with st.container(border=True):
@@ -92,14 +92,9 @@ bars = alt.Chart(parts).mark_bar(size=30).encode(
     order=alt.Order("Kolejność:Q"),
     tooltip=["Wariant:N", "Składnik:N", alt.Tooltip("Etykieta:N", title="Koszt")],
 )
-labels = alt.Chart(totals).mark_text(align="left", dx=6, fontSize=14, fontWeight=500, color=INK).encode(
+labels = alt.Chart(totals).mark_text(align="left", dx=6, fontSize=16, fontWeight=500, color=INK).encode(
     x="Koszt:Q", y=rows, text="Etykieta:N")
 st.altair_chart(readable((bars + labels).properties(height=190)), width="stretch")
-st.caption(
-    f"Nasze założenia, nie dane rynkowe: oszustwo, które przeszło, kosztuje tyle, ile jego kwota; zablokowana "
-    f"uczciwa transakcja {fmt_pln(BLOCK_COST)} (infolinia, utracona sprzedaż); weryfikacja {fmt_pln(VERIFY_COST)} "
-    f"i zatrzymuje {fmt_pct(VERIFY_EFFICACY)} oszustw. Kwoty w zł: {USD_PLN_SOURCE}."
-)
 
 st.subheader("Co dzieje się z transakcjami")
 order = [PASS, VERIFY, BLOCK]
@@ -109,6 +104,6 @@ table = pd.DataFrame({
     "Uczciwe transakcje": [fmt_int(current.honest[d]) for d in order],
 })
 right_aligned = st.column_config.TextColumn(alignment="right")
-st.dataframe(table, hide_index=True, width="stretch",
+st.dataframe(table, hide_index=True, width="content",
              column_config={"Oszustwa": right_aligned, "Uczciwe transakcje": right_aligned})
 st.caption("Liczba transakcji testowych, które przy Twoich progach dostają każdą z decyzji.")

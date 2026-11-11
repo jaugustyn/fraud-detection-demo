@@ -14,7 +14,6 @@ y = df["is_fraud"].to_numpy(bool)
 right_aligned = st.column_config.TextColumn(alignment="right")
 
 st.title("Porównanie metod")
-st.caption("Te same transakcje testowe dla wszystkich metod (druga połowa 2020, modele nie widziały ich podczas nauki).")
 
 false_alarms, comparison = compare_at_rules_false_alarms(df)
 detected = comparison.set_index("Metoda")["Wykryte oszustwa"]
@@ -26,8 +25,8 @@ st.markdown(
     f"**{fmt_pct(detected['Regresja logistyczna'])}**, a reguły **{fmt_pct(detected['Proste reguły'])}**."
 )
 table = comparison_table(comparison)
-st.dataframe(table, hide_index=True, width="stretch", column_config={c: right_aligned for c in table.columns[1:]})
-st.caption("Trafne alarmy: jaka część zablokowanych transakcji to oszustwa. Koszt jak w panelu, ale bez weryfikacji.")
+st.dataframe(table, hide_index=True, width="content", column_config={c: right_aligned for c in table.columns[1:]})
+st.caption("Trafne alarmy: jaka część zablokowanych transakcji to oszustwa. Koszt jak w „Progach i kosztach”, ale bez weryfikacji.")
 st.caption(f"Proste reguły: {rules}.")
 
 st.subheader("Wykryte oszustwa a fałszywe blokady")
@@ -51,7 +50,7 @@ lines = alt.Chart(curves).mark_line(strokeWidth=2).encode(x=x, y=y_axis, color=c
 hover_points = alt.Chart(curves).mark_point(size=80, opacity=0).encode(x=x, y=y_axis, tooltip=tooltip)
 point = alt.Chart(rules_point).mark_point(filled=True, size=120, opacity=1).encode(
     x=x, y=y_axis, color=color, tooltip=tooltip)
-point_label = point.mark_text(align="left", dx=10, dy=16, color=INK, fontSize=13).encode(text="Metoda:N")
+point_label = point.mark_text(align="left", dx=10, dy=16, color=INK, fontSize=15).encode(text="Metoda:N")
 st.altair_chart(readable((lines + hover_points + point + point_label).properties(height=360)), width="stretch")
 st.caption("Każdy punkt linii to inny próg modelu. Im wyżej i bardziej w lewo, tym lepiej.")
 

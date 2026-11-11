@@ -27,7 +27,6 @@ def clear_example() -> None:
 
 
 st.title("Sprawdź transakcję")
-st.caption("Wybierz przykład albo wpisz własne dane i zobacz, jak oceni je model.")
 st.segmented_control("Gotowe przykłady", list(CHECK_EXAMPLES), key="example", on_change=fill_in_example)
 
 col_transaction, col_card, col_result = st.columns(3)
@@ -55,6 +54,6 @@ transaction = transaction_input(amount, time_of_day, category, card_mean, spent_
 with col_result.container(border=True, height="stretch"):
     st.markdown("**Ocena modelu**")
     show_assessment(score_transaction(transaction), settings)
-    st.caption("Progi zmienisz w Panelu kompromisu.")
+    st.caption("Progi zmienisz na ekranie „Progi i koszty”.")
 
 show_explanation(transaction)
